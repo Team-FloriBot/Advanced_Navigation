@@ -252,7 +252,7 @@ Visualization Manager:
       Marker Topic: /bounding_boxes
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -356,7 +356,7 @@ Visualization Manager:
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
       Name: PointCloud2
-      Position Transformer: XYZ
+      Position Transformer: ""
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
@@ -366,6 +366,22 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /point_visualization
+      Name: Marker
+      Namespaces:
+        "": true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /line_visualization
+      Name: Marker
+      Namespaces:
+        "": true
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:
@@ -395,7 +411,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 5.238149166107178
+      Distance: 5.256187438964844
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -403,17 +419,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.9561499953269958
-        Y: 0.005142689682543278
-        Z: -0.871492862701416
+        X: 1.5060038566589355
+        Y: 0.30881497263908386
+        Z: -0.386527955532074
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7647975087165833
+      Pitch: 0.8447977304458618
       Target Frame: <Fixed Frame>
-      Yaw: 3.2467455863952637
+      Yaw: 3.5167548656463623
     Saved: ~
 Window Geometry:
   Displays:
@@ -431,5 +447,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1394
-  X: 195
-  Y: 92
+  X: 495
+  Y: 148
