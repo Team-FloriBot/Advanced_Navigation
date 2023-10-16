@@ -8,6 +8,22 @@ from geometry_msgs.msg import Twist, Point32
 from std_msgs.msg import Bool
 from visualization_msgs.msg import Marker
 
+class PID:
+    def __init__(self, kp, ki, kd, integral_limit):
+        self.kp = kp
+        self.ki = ki
+        self.kd = kd
+        self.integral_limit = integral_limit
+        self.previous_error = 0.0
+        self.integral = 0.0
+
+    def compute(self, error, dt):
+        self.integral += error * dt
+        self.integral = max(min(self.integral, self.integral_limit), -self.integral_limit)
+        derivative = (error - self.previous_error) / dt
+        self.previous_error = error
+        return self.kp * error + self.ki * self.integral + self.kd * derivative
+
 
 class FieldRobotNavigator:
     def __init__(self):
@@ -33,6 +49,7 @@ class FieldRobotNavigator:
         self.both_sides = rospy.set_param('both_sides', 'both')
 
         self.last_linear_speed = 0
+        self.pid_controller = PID(kp=3.0, ki=0.1, kd=0.1, integral_limit=1.0)
         self.last_cycle_time = rospy.Time.now()
 
         # Initialize parameters
@@ -319,18 +336,19 @@ class FieldRobotNavigator:
                     # If not enough points on the right, use a default or previously calculated value
                     right_dist = self.row_width - np.abs(np.polyval(left_poly_coeffs, validation_x)) if left_poly_coeffs is not None else np.inf
             center_dist = (np.abs(right_dist) - np.abs(left_dist)) / 2.0
-
+            angular_correction = self.pid_controller.compute(center_dist, cycle_time)
+        
             rospy.loginfo("Distance to center: %f", center_dist)
             # Adjust the angular velocity to center the robot between the rows
             cmd_vel = Twist()
-            cmd_vel.angular.z = -center_dist*3*self.vel_linear_drive
-            if np.abs(center_dist)>0.15:
+            cmd_vel.angular.z = -angular_correction#-center_dist*3*self.vel_linear_drive
+            if np.abs(center_dist)>0.2:
                 cmd_vel.linear.x = 0.1
-                if    np.abs(center_dist) > 0.20:
+                if    np.abs(center_dist) > 0.25:
                     cmd_vel.linear.x = 0
                     rospy.logwarn('Too close to row!!!')
             else:
-                cmd_vel.linear.x = self.vel_linear_drive*(self.max_dist_in_row-np.abs(center_dist))/self.max_dist_in_row
+                cmd_vel.linear.x = 2*self.vel_linear_drive*(self.max_dist_in_row-np.abs(center_dist))/self.max_dist_in_row
             rospy.loginfo("Publishing to cmd_vel: %s", cmd_vel)
         self.last_linear_speed = cmd_vel.linear.x 
         self.cmd_vel_pub.publish(cmd_vel)

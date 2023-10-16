@@ -89,15 +89,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        front_laser:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        front_laser_mount_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         front_wagon:
           Alpha: 1
           Show Axes: false
@@ -113,11 +104,20 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        laser_front_box:
+        laserFront:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
+        laserFront_box:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        laserFront_mount_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         rearLeft:
           Alpha: 1
           Show Axes: false
@@ -163,17 +163,17 @@ Visualization Manager:
           Value: true
         frontRight:
           Value: true
-        front_laser:
-          Value: true
-        front_laser_mount_link:
-          Value: true
         front_wagon:
           Value: true
         jointFront:
           Value: true
         jointRear:
           Value: true
-        laser_front_box:
+        laserFront:
+          Value: true
+        laserFront_box:
+          Value: true
+        laserFront_mount_link:
           Value: true
         rearLeft:
           Value: true
@@ -198,9 +198,6 @@ Visualization Manager:
               {}
             frontRight:
               {}
-            front_laser_mount_link:
-              front_laser:
-                {}
             jointFront:
               jointRear:
                 axesRear:
@@ -213,8 +210,11 @@ Visualization Manager:
                       {}
                   rear_wagon:
                     {}
-            laser_front_box:
+            laserFront_box:
               {}
+            laserFront_mount_link:
+              laserFront:
+                {}
           front_wagon:
             {}
       Update Interval: 0
@@ -356,7 +356,7 @@ Visualization Manager:
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
       Name: PointCloud2
-      Position Transformer: ""
+      Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
@@ -372,7 +372,7 @@ Visualization Manager:
       Marker Topic: /point_visualization
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -380,7 +380,15 @@ Visualization Manager:
       Marker Topic: /line_visualization
       Name: Marker
       Namespaces:
-        "": true
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /polynomial_markers
+      Name: Marker
+      Namespaces:
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -448,4 +456,4 @@ Window Geometry:
     collapsed: false
   Width: 1394
   X: 495
-  Y: 148
+  Y: 111
