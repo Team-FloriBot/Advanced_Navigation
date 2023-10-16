@@ -40,7 +40,7 @@ critic_row: [2,5]
   
 vel_linear_turn: 0.25
 #0.25
-vel_linear_drive: 0.7
+vel_linear_drive: 0.5
 #0.75
 vel_linear_count: 0.25
 #0.25
