@@ -29,10 +29,30 @@ class FieldRobotNavigator:
         self.both_sides = rospy.set_param('both_sides', 'both')
 
         # Initialize parameters
-        self.x_min = rospy.get_param('x_min_drive_in_row')
-        self.x_max = rospy.get_param('x_max_drive_in_row')
-        self.y_min = rospy.get_param('y_min_drive_in_row')
-        self.y_max = rospy.get_param('y_max_drive_in_row')
+        self.x_min = self.x_min_drive_in_row = rospy.get_param('x_min_drive_in_row')
+        self.x_max = self.x_max_drive_in_row = rospy.get_param('x_max_drive_in_row')
+        self.y_min = self.y_min_drive_in_row = rospy.get_param('y_min_drive_in_row')
+        self.y_max = self.y_max_drive_in_row = rospy.get_param('y_max_drive_in_row')
+
+        self.x_min_turn_and_exit = rospy.get_param('x_min_turn_and_exit')
+        self.x_max_turn_and_exit = rospy.get_param('x_max_turn_and_exit')
+        self.y_min_turn_and_exit = rospy.get_param('y_min_turn_and_exit')
+        self.y_max_turn_and_exit = rospy.get_param('y_max_turn_and_exit')
+
+        self.x_min_counting_rows = rospy.get_param('x_min_counting_rows')
+        self.x_max_counting_rows = rospy.get_param('x_max_counting_rows')
+        self.y_min_counting_rows = rospy.get_param('y_min_counting_rows')
+        self.y_max_counting_rows = rospy.get_param('y_max_counting_rows')
+
+        self.x_min_turn_to_row = rospy.get_param('x_min_turn_to_row')
+        self.x_max_turn_to_row = rospy.get_param('x_max_turn_to_row')
+        self.y_min_turn_to_row = rospy.get_param('y_min_turn_to_row')
+        self.y_max_turn_to_row = rospy.get_param('y_max_turn_to_row')
+
+        self.x_min_turn_to_row_critic = rospy.get_param('x_min_turn_to_row_critic')
+        self.x_max_turn_to_row_critic = rospy.get_param('x_max_turn_to_row_critic')
+        self.y_min_turn_to_row_critic = rospy.get_param('y_min_turn_to_row_critic')
+        self.y_max_turn_to_row_critic = rospy.get_param('y_max_turn_to_row_critic')
 
         self.row_width = rospy.get_param('row_width')
         self.drive_out_dist =rospy.get_param('drive_out_dist')
@@ -46,16 +66,45 @@ class FieldRobotNavigator:
         self.last_state = 'drive_in_row'
         
         # Initialize state variables
-        self.current_state = 'manual_mode'
+        self.current_state = 'drive_in_row' #'manual_mode'
         self.pattern = rospy.get_param('pattern')
-        self.automatic_mode=False
-        self.obstacle_automatic_mode= True
+        self.automatic_mode = True
+        self.obstacle_automatic_mode = True
         self.teleop_cmd_vel=Twist()
         self.teleop_cmd_vel.linear.x = 0
         self.teleop_cmd_vel.angular.z = 0
 
         self.driven_row = 0
+
+    def set_drive_params(self):
+        self.x_min = self.x_min_drive_in_row
+        self.x_max = self.x_max_drive_in_row
+        self.y_min = self.y_min_drive_in_row
+        self.y_max = self.y_max_drive_in_row
         
+    def set_exit_params(self):
+       self.x_min = self.x_min_turn_and_exit
+       self.x_max = self.x_max_turn_and_exit
+       self.y_min = self.y_min_turn_and_exit
+       self.y_max = self.y_max_turn_and_exit
+    
+    def set_counting_params(self):
+        self.x_min = self.x_min_counting_rows
+        self.x_max = self.x_max_counting_rows
+        self.y_min = self.y_min_counting_rows
+        self.y_max = self.y_max_counting_rows
+
+    def set_turn_to_row_params(self,flag):
+        if flag != True:
+            self.x_min = self.x_min_turn_to_row 
+            self.x_max = self.x_max_turn_to_row 
+            self.y_min = self.y_min_turn_to_row 
+            self.y_max = self.y_max_turn_to_row 
+        else:
+            self.x_min = self.x_min_turn_to_row_critic
+            self.x_max = self.x_max_turn_to_row_critic
+            self.y_min = self.y_min_turn_to_row_critic
+            self.y_max = self.y_max_turn_to_row_critic
 
 
     def point_cloud_callback(self, msg):
@@ -171,10 +220,7 @@ class FieldRobotNavigator:
                 rospy.loginfo("Leaving the row...")
                 rospy.sleep(0.1)
 
-            self.x_min = rospy.get_param('x_min_turn_and_exit')
-            self.x_max = rospy.get_param('x_max_turn_and_exit')
-            self.y_min = rospy.get_param('y_min_turn_and_exit')
-            self.y_max = rospy.get_param('y_max_turn_and_exit')
+            self.set_exit_params()
             rospy.set_param('box', 'exit')
             rospy.set_param('both_sides', self.pattern[self.driven_row][1])
             self.driven_row += 1 
@@ -214,22 +260,13 @@ class FieldRobotNavigator:
         if -0.1 < x_mean < 0.1:
             cmd_vel = Twist()
             rospy.loginfo("Aligned to the rows...")
-            self.x_min = rospy.get_param('x_min_counting_rows')
-            self.x_max = rospy.get_param('x_max_counting_rows')
-            self.y_min = rospy.get_param('y_min_counting_rows')
-            self.y_max = rospy.get_param('y_max_counting_rows')
+            self.set_counting_params()
             if self.pattern[self.driven_row-1][0]==1:
                 if self.driven_row in self.critic_row:
-                    self.x_min = rospy.get_param('x_min_turn_to_row_critic')
-                    self.x_max = rospy.get_param('x_max_turn_to_row_critic')
-                    self.y_min = rospy.get_param('y_min_turn_to_row_critic')
-                    self.y_max = rospy.get_param('y_max_turn_to_row_critic')
+                    self.set_turn_to_row_params(True) #True means critic params
                     rospy.set_param('box', 'turn_crit')
                 else:
-                    self.x_min = rospy.get_param('x_min_turn_to_row')
-                    self.x_max = rospy.get_param('x_max_turn_to_row')
-                    self.y_min = rospy.get_param('y_min_turn_to_row')
-                    self.y_max = rospy.get_param('y_max_turn_to_row')
+                    self.set_turn_to_row_params(False)
                     rospy.set_param('box', 'turn')
 
                 rospy.set_param('both_sides', 'both')
@@ -279,16 +316,10 @@ class FieldRobotNavigator:
         if self.pattern[self.driven_row-1][0] == self.row_counter:
             rospy.loginfo("start turning to row...")
             if self.driven_row in self.critic_row:
-                self.x_min = rospy.get_param('x_min_turn_to_row_critic')
-                self.x_max = rospy.get_param('x_max_turn_to_row_critic')
-                self.y_min = rospy.get_param('y_min_turn_to_row_critic')
-                self.y_max = rospy.get_param('y_max_turn_to_row_critic')
+                self.set_turn_to_row_params(True)
                 rospy.set_param('box', 'turn_crit')
             else:
-                self.x_min = rospy.get_param('x_min_turn_to_row')
-                self.x_max = rospy.get_param('x_max_turn_to_row')
-                self.y_min = rospy.get_param('y_min_turn_to_row')
-                self.y_max = rospy.get_param('y_max_turn_to_row')
+                self.set_turn_to_row_params(False)
                 rospy.set_param('box', 'turn')
             rospy.set_param('both_sides', 'both')
             
@@ -336,10 +367,7 @@ class FieldRobotNavigator:
         if -0.1 < y_mean < 0.1:
             cmd_vel = Twist()
             rospy.loginfo("Start driving in row...")
-            self.x_min = rospy.get_param('x_min_drive_in_row')
-            self.x_max = rospy.get_param('x_max_drive_in_row')
-            self.y_min = rospy.get_param('y_min_drive_in_row')
-            self.y_max = rospy.get_param('y_max_drive_in_row')
+            self.set_drive_params()
             self.current_state = 'drive_in_row'
         else:
             if 0 <= self.driven_row < len(self.pattern):

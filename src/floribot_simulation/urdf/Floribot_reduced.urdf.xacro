@@ -148,17 +148,17 @@
 
 
 <!-- joint laserscanner front  -->
-<joint name="joint_front_laser" type="fixed">
+<joint name="joint_laserFront" type="fixed">
   <parent link="axesFront"/>
-  <child link="front_laser_mount_link"/>
+  <child link="laserFront_mount_link"/>
   <origin xyz="${x_laser_front} 0 ${laser_height}" rpy="3.14 0 0"/>
 </joint>
 
 <!-- link laserscanner front -->
-<xacro:sick_tim_5xx name="front_laser" ros_topic="laser_scanner_front"/>
+<xacro:sick_tim_5xx name="laserFront" ros_topic="/sensors/scanFront"/>
 
 <!-- distance box laserscanner front -->
-<link name="laser_front_box">
+<link name="laserFront_box">
   <visual>
     <origin xyz="0 0 0" rpy="0 0 0"/>
     <axis xyz="0 0 0"/>
@@ -174,12 +174,12 @@
 </link>
 
 <!-- gazebo color scanner box -->
-<xacro:darkGreyColor linkName = "laser_front_box" />
+<xacro:darkGreyColor linkName = "laserFront_box" />
 
 <!-- joint between laserscanner box and base link-->
 <joint name="j_laser_box" type="fixed">
     <parent link="axesFront"/>
-    <child link="laser_front_box"/>
+    <child link="laserFront_box"/>
     <origin xyz="${length_wagon_front/2-base_2_front_wagon+0.011} 0 -0.005" rpy="0 0 0"/>
 </joint>
 
@@ -367,7 +367,7 @@
 </joint>
 
 <!-- rear laserscanner -->
-<xacro:sick_tim_5xx name="rear_laser" ros_topic="laser_scanner_rear"/>
+<xacro:sick_tim_5xx name="rear_laser" ros_topic="/sensors/scanRear"/>
 
 <!-- joint front wagon and wheel fl -->
 <joint name="joint_frontLeft" type="continuous">
