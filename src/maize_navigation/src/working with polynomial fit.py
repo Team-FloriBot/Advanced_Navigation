@@ -5,24 +5,8 @@ import numpy as np
 from sensor_msgs.msg import PointCloud2, PointField,Joy
 from sensor_msgs import point_cloud2
 from geometry_msgs.msg import Twist, Point32
-from std_msgs.msg import Bool , Float32
+from std_msgs.msg import Bool
 from visualization_msgs.msg import Marker
-
-class PID:
-    def __init__(self, kp, ki, kd, integral_limit):
-        self.kp = kp
-        self.ki = ki
-        self.kd = kd
-        self.integral_limit = integral_limit
-        self.previous_error = 0.0
-        self.integral = 0.0
-
-    def compute(self, error, dt):
-        self.integral += error * dt
-        self.integral = max(min(self.integral, self.integral_limit), -self.integral_limit)
-        derivative = (error - self.previous_error) / dt
-        self.previous_error = error
-        return self.kp * error + self.ki * self.integral + self.kd * derivative
 
 
 class FieldRobotNavigator:
@@ -35,11 +19,10 @@ class FieldRobotNavigator:
         rospy.Subscriber('/obstacle/obstacle_automatic_mode', Bool, self.obstacle_automatic_mode_callback)
         rospy.Subscriber('/teleop/cmd_vel', Twist, self.teleop_cmd_vel_callback)
         rospy.Subscriber('/teleop/movement_sequence', Joy, self.pattern_callback)
-        rospy.Subscriber("/closest_pair_angle", Float32, self.angle_callback)
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
         self.points_pub = rospy.Publisher('/field_points', PointCloud2, queue_size=1)
         self.marker_pub = rospy.Publisher('/polynomial_markers', Marker, queue_size=10)
-        self.angle_pub = rospy.Publisher('angle_to_row', Float32, queue_size=10)
+
 
         # Initialize member variables
         self.robot_pose = None
@@ -48,10 +31,6 @@ class FieldRobotNavigator:
 
         self.box = rospy.set_param('box', 'drive')
         self.both_sides = rospy.set_param('both_sides', 'both')
-
-        self.last_linear_speed = 0
-        self.pid_controller = PID(kp=3.0, ki=0.1, kd=0.5, integral_limit=1.0)
-        self.last_cycle_time = rospy.Time.now()
 
         # Initialize parameters
         self.x_min = self.x_min_drive_in_row = rospy.get_param('x_min_drive_in_row')
@@ -189,10 +168,6 @@ class FieldRobotNavigator:
         cloud = point_cloud2.create_cloud(header, fields, points)
         self.points_pub.publish(cloud)
 
-    def angle_callback(self, msg):
-        # msg is a Float32 message
-        # msg.data contains the float value
-        self.angle = msg.data
 
     def navigate(self):
         rate = rospy.Rate(10)
@@ -261,18 +236,8 @@ class FieldRobotNavigator:
                 # Separating the points to the left and right
         left_points = [p for p in self.drive_points if p.y < 0]
         right_points = [p for p in self.drive_points if p.y >= 0]
-        # Calculate cycle time
-        current_time = rospy.Time.now()
-        cycle_time = (current_time - self.last_cycle_time).to_sec()
-        self.last_cycle_time = current_time  
-        #vel_linear_drive = self.vel_linear_drive# Update last_cycle_time for the next cycle
 
-        # Calculate validation_x using the last published linear speed
-        validation_x = 1 * cycle_time * self.last_linear_speed
-        self.last_linear_speed = 0
-        poly_min_dist_req = 0.3
-
-        if len(left_points) < 2 and len(right_points) < 2:
+        if not len(left_points) >= 10 and not len(right_points) >= 10:
             # Not enough data to calculate center
             rospy.loginfo("At least one side has no maize")
             rospy.loginfo("Reached the end of a row.")
@@ -298,87 +263,92 @@ class FieldRobotNavigator:
             right_x = np.array([p.x for p in right_points])
             right_y = np.array([p.y for p in right_points])
 
-            if len(left_x) > 0:
-                min_left_x, max_left_x = np.min(left_x), np.max(left_x)
+            # Fitting a polynomial of degree 3 to the points, if there are enough points
+            left_poly_coeffs = np.polyfit(left_x, left_y, 1) if len(left_points) >= 6 else None
+            right_poly_coeffs = np.polyfit(right_x, right_y,  1) if len(right_points) >= 6 else None
+
+            if left_poly_coeffs is not None:
+                # Calculating the distance to the left at x=0 using the polynomial equation
+                left_dist = np.polyval(left_poly_coeffs, 0)
+                self.publish_poly_marker(left_poly_coeffs, 'left_poly', -0.3, 1.5)
             else:
-                min_left_x, max_left_x = None,None   # or set to some other default value
+                # If not enough points on the left, use a default or previously calculated value
+                left_dist = self.row_width - np.polyval(right_poly_coeffs, 0) if right_poly_coeffs is not None else np.inf
 
-            if len(right_x) > 0:
-                min_right_x, max_right_x = np.min(right_x), np.max(right_x)
+            if right_poly_coeffs is not None:
+                # Calculating the distance to the right at x=0 using the polynomial equation
+                right_dist = np.polyval(right_poly_coeffs, 0)
+                self.publish_poly_marker(right_poly_coeffs, 'right_poly', -0.3, 1.5)
             else:
-                min_right_x, max_right_x = None,None  # or set to some other default value
-
-            if ((min_left_x is not None and 0 < min_left_x) or 
-                (min_right_x is not None and 0 < min_right_x) or 
-                (max_left_x is not None and poly_min_dist_req > max_left_x) or 
-                (max_right_x is not None and poly_min_dist_req > max_right_x)
-                ):
-
-                rospy.loginfo("AVG Control!")
-                left_dist = np.mean(np.abs(left_y)) if len(left_y) > 1 else np.inf #left is negative usually
-                right_dist = np.mean(np.abs(right_y)) if len(right_y) > 1 else np.inf
-                if np.isinf(left_dist):
-                   left_dist=self.row_width-right_dist
-                if np.isinf(right_dist):
-                    right_dist=self.row_width-left_dist
-            else:
-                # Fitting a polynomial of degree 3 to the points, if there are enough points
-                left_poly_coeffs = np.polyfit(left_x, left_y, 3) if len(left_points) >= 6 else None
-                right_poly_coeffs = np.polyfit(right_x, right_y,  3) if len(right_points) >= 6 else None
-
-                if left_poly_coeffs is not None:
-                    # Calculating the distance to the left at x=0 using the polynomial equation
-                    left_dist = np.polyval(left_poly_coeffs, validation_x)
-                    self.publish_poly_marker(left_poly_coeffs, 'left_poly', -0.3, 1.5)
-                    #left_derivative_poly = np.polyder(left_poly_coeffs)
-                    #left_derivative_value = np.polyval(left_derivative_poly, validation_x)
-                else:
-                    # If not enough points on the left, use a default or previously calculated value
-                    left_dist = self.row_width - np.polyval(right_poly_coeffs, validation_x) if right_poly_coeffs is not None else np.inf
-
-                if right_poly_coeffs is not None:
-                    # Calculating the distance to the right at x=0 using the polynomial equation
-                    right_dist = np.polyval(right_poly_coeffs, validation_x)
-                    self.publish_poly_marker(right_poly_coeffs, 'right_poly', -0.3, 1.5)
-                    #right_derivative_poly = np.polyder(right_poly_coeffs)
-                    #right_derivative_value = np.polyval(right_derivative_poly, validation_x)
-                else:
-                    # If not enough points on the right, use a default or previously calculated value
-                    right_dist = self.row_width - np.abs(np.polyval(left_poly_coeffs, validation_x)) if left_poly_coeffs is not None else np.inf
-
-                '''# Calculate the average derivative value
-                if left_poly_coeffs is not None and right_poly_coeffs is not None:
-                    avg_derivative_value = (left_derivative_value + right_derivative_value) / 2.0
-                    # Calculate the angle to the row using atan
-                    angle_to_row = np.arctan(avg_derivative_value)
-                    angle_msg = Float32()
-                    angle_msg.data = np.degrees(angle_to_row)
-                    # Publish the angle message
-                    self.angle_pub.publish(angle_msg)
-                '''
-            
-            center_dist = (np.abs(right_dist) - np.abs(left_dist)) / 2.0
-            angular_correction = self.pid_controller.compute(center_dist, cycle_time)
-        
+                # If not enough points on the right, use a default or previously calculated value
+                right_dist = self.row_width - np.polyval(left_poly_coeffs, 0) if left_poly_coeffs is not None else np.inf
+            center_dist = (right_dist - np.abs(left_dist)) / 2.0
             rospy.loginfo("Distance to center: %f", center_dist)
             # Adjust the angular velocity to center the robot between the rows
             cmd_vel = Twist()
-            cmd_vel.angular.z = -angular_correction#-center_dist*3*self.vel_linear_drive
-            if np.abs(center_dist)> 0.2:
+            cmd_vel.angular.z = -center_dist*3*self.vel_linear_drive
+            if np.abs(center_dist)>0.15:
                 cmd_vel.linear.x = 0.1
-                if    np.abs(center_dist) > 0.25:
+                if    np.abs(center_dist) > 0.20:
                     cmd_vel.linear.x = 0
                     rospy.logwarn('Too close to row!!!')
             else:
-                cmd_vel.linear.x = self.vel_linear_drive*(self.max_dist_in_row-np.abs(center_dist)*0.75)/self.max_dist_in_row
+                cmd_vel.linear.x = self.vel_linear_drive*(self.max_dist_in_row-np.abs(center_dist))/self.max_dist_in_row
             rospy.loginfo("Publishing to cmd_vel: %s", cmd_vel)
-        self.last_linear_speed = cmd_vel.linear.x 
         self.cmd_vel_pub.publish(cmd_vel)
         if self.automatic_mode==False or self.obstacle_automatic_mode==False:
             self.last_state=self.current_state
             self.current_state='manual_mode'           
 
 
+        '''left_y = [p.y for p in self.points if p.y < 0]
+        right_y = [p.y for p in self.points if p.y >= 0]
+        left_dist = np.mean(np.abs(left_y)) if len(left_y) > 1 else np.inf #left is negative usually
+        right_dist = np.mean(np.abs(right_y)) if len(right_y) > 1 else np.inf
+        if np.isinf(left_dist) and np.isinf(right_dist):
+            # Not enough data to calculate center
+            rospy.loginfo("At least one side has no maize")
+            rospy.loginfo("Reached the end of a row.")
+            cmd_vel = Twist()
+            cmd_vel.linear.x = self.vel_linear_drive
+            time = self.drive_out_dist / self.vel_linear_drive
+            start_time = rospy.Time.now().to_sec()
+            while (rospy.Time.now().to_sec() - start_time) < time:
+                self.cmd_vel_pub.publish(cmd_vel)
+                rospy.loginfo("Leaving the row...")
+                rospy.sleep(0.1)
+
+            self.set_exit_params()
+            rospy.set_param('box', 'exit')
+            rospy.set_param('both_sides', self.pattern[self.driven_row][1])
+            self.driven_row += 1 
+            self.current_state = 'turn_and_exit'
+        else:
+            if np.isinf(left_dist):
+                left_dist=self.row_width-right_dist
+            if np.isinf(right_dist):
+                right_dist=self.row_width-left_dist
+                
+            # Calculate the actual distance to the center of both sides
+            center_dist = (right_dist - left_dist) / 2.0
+            rospy.loginfo("Distance to center: %f", center_dist)
+         # Adjust the angular velocity to center the robot between the rows
+            cmd_vel = Twist()
+            cmd_vel.angular.z = -center_dist*3*self.vel_linear_drive
+            if np.abs(center_dist)>0.15:
+                cmd_vel.linear.x = 0.1
+                if    np.abs(center_dist) > 0.20:
+                    cmd_vel.linear.x = 0
+                    rospy.logwarn('Too close to row!!!')
+            else:
+                cmd_vel.linear.x = self.vel_linear_drive*(self.max_dist_in_row-np.abs(center_dist))/self.max_dist_in_row
+            rospy.loginfo("Publishing to cmd_vel: %s", cmd_vel)
+        self.cmd_vel_pub.publish(cmd_vel)
+        if self.automatic_mode==False or self.obstacle_automatic_mode==False:
+            self.last_state=self.current_state
+            self.current_state='manual_mode'
+            '''
+        
 
     def turn_and_exit(self):
         rospy.loginfo("Turn and exit...")
@@ -386,8 +356,7 @@ class FieldRobotNavigator:
         points_x = [p.x for p in self.points]
         x_mean = np.mean(points_x) if len(points_x) > 0 else np.inf 
         rospy.loginfo("xmean: %f", x_mean)
-        if -0.08 < x_mean < 0.08:
-        #if np.abs(self.angle) > 75:
+        if -0.1 < x_mean < 0.1:
             cmd_vel = Twist()
             rospy.loginfo("Aligned to the rows...")
             self.set_counting_params()
@@ -491,10 +460,10 @@ class FieldRobotNavigator:
     def turn_to_row(self):
         rospy.loginfo("Turn to row...")
         # Calculate the average distance to the robot on both sides within x and y limits
-        #points_y = [p.y for p in self.points]
-        #y_mean = np.mean((points_y)) if len(points_y) > 0 else np.inf #left is negative usually
-        #rospy.loginfo("ymean: %f", y_mean)
-        if np.abs(self.angle) < 5:
+        points_y = [p.y for p in self.points]
+        y_mean = np.mean((points_y)) if len(points_y) > 0 else np.inf #left is negative usually
+        rospy.loginfo("ymean: %f", y_mean)
+        if -0.1 < y_mean < 0.1:
             cmd_vel = Twist()
             rospy.loginfo("Start driving in row...")
             self.set_drive_params()
