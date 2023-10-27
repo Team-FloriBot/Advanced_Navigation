@@ -45,7 +45,7 @@ vel_linear_drive: 1.0
 vel_linear_count: 0.25
 #0.25
 row_width: 0.75
-drive_out_dist: 0.5315
+drive_out_dist: 0.4315
 #laserdist=0.3315 rowdist+0.4 0.6315
 max_dist_in_row: 0.2
 #0.75/2-0.45/2=0.15 row_width/2-robotwidth/2

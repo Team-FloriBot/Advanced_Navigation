@@ -268,7 +268,7 @@ class FieldRobotNavigator:
         #vel_linear_drive = self.vel_linear_drive# Update last_cycle_time for the next cycle
 
         # Calculate validation_x using the last published linear speed
-        validation_x = 1 * cycle_time * self.last_linear_speed
+        validation_x = 3 * cycle_time * self.last_linear_speed
         self.last_linear_speed = 0
         poly_min_dist_req = 0.3
 
@@ -308,8 +308,8 @@ class FieldRobotNavigator:
             else:
                 min_right_x, max_right_x = None,None  # or set to some other default value
 
-            if ((min_left_x is not None and 0 < min_left_x) or 
-                (min_right_x is not None and 0 < min_right_x) or 
+            if ((min_left_x is not None and 0.1 < min_left_x) or 
+                (min_right_x is not None and 0.1 < min_right_x) or 
                 (max_left_x is not None and poly_min_dist_req > max_left_x) or 
                 (max_right_x is not None and poly_min_dist_req > max_right_x)
                 ):
