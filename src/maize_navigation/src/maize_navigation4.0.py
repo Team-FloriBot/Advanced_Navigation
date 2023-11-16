@@ -50,7 +50,9 @@ class FieldRobotNavigator:
         self.both_sides = rospy.set_param('both_sides', 'both')
 
         self.last_linear_speed = 0
-        self.pid_controller = PID(kp=3.0, ki=0.1, kd=0.5, integral_limit=1.0)
+        self.pid_controller = PID(kp=4, ki=0, kd=0, integral_limit=1.0)
+        #kp=4 still ok kp5 swinging
+
         self.last_cycle_time = rospy.Time.now()
 
         # Initialize parameters
@@ -346,7 +348,7 @@ class FieldRobotNavigator:
                     # If not enough points on the right, use a default or previously calculated value
                     right_dist = self.row_width - np.abs(np.polyval(left_poly_coeffs, validation_x)) if left_poly_coeffs is not None else np.inf
 
-                '''# Calculate the average derivative value
+                # Calculate the average derivative value
                 if left_poly_coeffs is not None and right_poly_coeffs is not None:
                     avg_derivative_value = (left_derivative_value + right_derivative_value) / 2.0
                     # Calculate the angle to the row using atan
@@ -355,9 +357,9 @@ class FieldRobotNavigator:
                     angle_msg.data = np.degrees(angle_to_row)
                     # Publish the angle message
                     self.angle_pub.publish(angle_msg)
-                '''
+                
             
-            center_dist = (np.abs(right_dist) - np.abs(left_dist)) / 2.0
+            center_dist = (np.abs(right_dist) - np.abs(left_dist)) 
             angular_correction = self.pid_controller.compute(center_dist, cycle_time)
         
             rospy.loginfo("Distance to center: %f", center_dist)
