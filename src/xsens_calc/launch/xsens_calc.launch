@@ -1,0 +1,6 @@
+<?xml version='1.0'?>
+<launch>
+   <master auto="start"/>
+  <node pkg="xsens_calc" type="xsens_calc.py" name="xsens_calc">
+   </node>
+</launch>

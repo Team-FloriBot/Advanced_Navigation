@@ -40,6 +40,7 @@ class FieldRobotNavigator:
         self.points_pub = rospy.Publisher('/field_points', PointCloud2, queue_size=1)
         self.marker_pub = rospy.Publisher('/polynomial_markers', Marker, queue_size=10)
         self.angle_pub = rospy.Publisher('angle_to_row', Float32, queue_size=10)
+        self.center_dist = rospy.Publisher("/center_dist", Float32, queue_size=10)
 
         # Initialize member variables
         self.robot_pose = None
@@ -50,7 +51,7 @@ class FieldRobotNavigator:
         self.both_sides = rospy.set_param('both_sides', 'both')
 
         self.last_linear_speed = 0
-        self.pid_controller = PID(kp=4, ki=0, kd=0, integral_limit=1.0)
+        self.pid_controller = PID(kp=2.25, ki=0.01, kd=0.75, integral_limit=1.0)
         #kp=4 still ok kp5 swinging
 
         self.last_cycle_time = rospy.Time.now()
@@ -270,7 +271,7 @@ class FieldRobotNavigator:
         #vel_linear_drive = self.vel_linear_drive# Update last_cycle_time for the next cycle
 
         # Calculate validation_x using the last published linear speed
-        validation_x = 3 * cycle_time * self.last_linear_speed
+        validation_x = 5 * cycle_time * self.last_linear_speed
         self.last_linear_speed = 0
         poly_min_dist_req = 0.3
 
@@ -310,19 +311,19 @@ class FieldRobotNavigator:
             else:
                 min_right_x, max_right_x = None,None  # or set to some other default value
 
-            if ((min_left_x is not None and 0.1 < min_left_x) or 
-                (min_right_x is not None and 0.1 < min_right_x) or 
+            if ((min_left_x is not None and 0 < min_left_x) or 
+                (min_right_x is not None and 0 < min_right_x) or 
                 (max_left_x is not None and poly_min_dist_req > max_left_x) or 
                 (max_right_x is not None and poly_min_dist_req > max_right_x)
                 ):
 
                 rospy.loginfo("AVG Control!")
-                left_dist = np.mean(np.abs(left_y)) if len(left_y) > 1 else np.inf #left is negative usually
-                right_dist = np.mean(np.abs(right_y)) if len(right_y) > 1 else np.inf
+                left_dist = np.mean(left_y) if len(left_y) > 1 else np.inf #left is negative usually
+                right_dist = np.mean(right_y) if len(right_y) > 1 else np.inf
                 if np.isinf(left_dist):
-                   left_dist=self.row_width-right_dist
+                   left_dist=right_dist-self.row_width
                 if np.isinf(right_dist):
-                    right_dist=self.row_width-left_dist
+                    right_dist=left_dist+self.row_width
             else:
                 # Fitting a polynomial of degree 3 to the points, if there are enough points
                 left_poly_coeffs = np.polyfit(left_x, left_y, 3) if len(left_points) >= 6 else None
@@ -336,7 +337,7 @@ class FieldRobotNavigator:
                     #left_derivative_value = np.polyval(left_derivative_poly, validation_x)
                 else:
                     # If not enough points on the left, use a default or previously calculated value
-                    left_dist = self.row_width - np.polyval(right_poly_coeffs, validation_x) if right_poly_coeffs is not None else np.inf
+                    left_dist = np.polyval(right_poly_coeffs, validation_x) - self.row_width if right_poly_coeffs is not None else np.inf
 
                 if right_poly_coeffs is not None:
                     # Calculating the distance to the right at x=0 using the polynomial equation
@@ -346,33 +347,35 @@ class FieldRobotNavigator:
                     #right_derivative_value = np.polyval(right_derivative_poly, validation_x)
                 else:
                     # If not enough points on the right, use a default or previously calculated value
-                    right_dist = self.row_width - np.abs(np.polyval(left_poly_coeffs, validation_x)) if left_poly_coeffs is not None else np.inf
+                    right_dist = self.row_width + np.polyval(left_poly_coeffs, validation_x) if left_poly_coeffs is not None else np.inf
 
                 # Calculate the average derivative value
-                if left_poly_coeffs is not None and right_poly_coeffs is not None:
+                '''if left_poly_coeffs is not None and right_poly_coeffs is not None:
                     avg_derivative_value = (left_derivative_value + right_derivative_value) / 2.0
                     # Calculate the angle to the row using atan
                     angle_to_row = np.arctan(avg_derivative_value)
                     angle_msg = Float32()
                     angle_msg.data = np.degrees(angle_to_row)
                     # Publish the angle message
-                    self.angle_pub.publish(angle_msg)
+                    self.angle_pub.publish(angle_msg)'''
                 
             
-            center_dist = (np.abs(right_dist) - np.abs(left_dist)) 
+            center_dist = right_dist + left_dist
             angular_correction = self.pid_controller.compute(center_dist, cycle_time)
         
             rospy.loginfo("Distance to center: %f", center_dist)
+            self.center_dist.publish(center_dist)
             # Adjust the angular velocity to center the robot between the rows
             cmd_vel = Twist()
             cmd_vel.angular.z = -angular_correction#-center_dist*3*self.vel_linear_drive
-            if np.abs(center_dist)> 0.2:
+
+            if np.abs(center_dist)> self.max_dist_in_row-0.05:
                 cmd_vel.linear.x = 0.1
-                if    np.abs(center_dist) > 0.25:
+                if    np.abs(center_dist) > self.max_dist_in_row:
                     cmd_vel.linear.x = 0
                     rospy.logwarn('Too close to row!!!')
             else:
-                cmd_vel.linear.x = self.vel_linear_drive*(self.max_dist_in_row-np.abs(center_dist)*0.75)/self.max_dist_in_row
+                cmd_vel.linear.x = self.vel_linear_drive*(self.max_dist_in_row-np.abs(center_dist))/self.max_dist_in_row
             rospy.loginfo("Publishing to cmd_vel: %s", cmd_vel)
         self.last_linear_speed = cmd_vel.linear.x 
         self.cmd_vel_pub.publish(cmd_vel)
