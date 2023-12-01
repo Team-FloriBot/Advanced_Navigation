@@ -6,23 +6,28 @@ from std_msgs.msg import Float32
 from geometry_msgs.msg import Point32, Point
 import heapq
 
+
 class ClosestPairAngleCalculator:
     def __init__(self):
         rospy.init_node("closest_pair_angle_node")
         self.min_distance = 0.5
         self.threshold = 0.1
-        self.closest_pair_angle_pub = rospy.Publisher("/closest_pair_angle", Float32, queue_size=10)
-        
+        self.closest_pair_angle_pub = rospy.Publisher(
+            "/closest_pair_angle", Float32, queue_size=10
+        )
+
         # Subscribe to the merged point cloud
-        rospy.Subscriber('/merged_point_cloud', PointCloud2, self.point_cloud_callback)
+        rospy.Subscriber("/merged_point_cloud", PointCloud2, self.point_cloud_callback)
 
     def point_distance(self, point1, point2):
-        return math.sqrt((point1.x - point2.x)**2 + (point1.y - point2.y)**2)
+        return math.sqrt((point1.x - point2.x) ** 2 + (point1.y - point2.y) ** 2)
 
     def point_cloud_callback(self, msg):
         # Extract the points from the PointCloud2 message
         points = []
-        for p in point_cloud2.read_points(msg, field_names=("x", "y", "z"), skip_nans=True):
+        for p in point_cloud2.read_points(
+            msg, field_names=("x", "y", "z"), skip_nans=True
+        ):
             points.append(Point32(p[0], p[1], p[2]))
 
         # Maintain a min-heap for the closest 10 points
@@ -30,7 +35,9 @@ class ClosestPairAngleCalculator:
         min_heap = []
 
         for point in points:
-            dist = self.point_distance(Point32(0, 0, 0), point)  # Robot's position assumed at (0, 0, 0)
+            dist = self.point_distance(
+                Point32(0, 0, 0), point
+            )  # Robot's position assumed at (0, 0, 0)
 
             if len(closest_10_points) < 10:
                 heapq.heappush(min_heap, (-dist, point))
@@ -53,8 +60,12 @@ class ClosestPairAngleCalculator:
                     closest_pair = (closest_10_points[i], closest_10_points[j])
 
         if closest_pair:
-            angle = math.atan2(closest_pair[1].y - closest_pair[0].y, closest_pair[1].x - closest_pair[0].x)
+            angle = math.atan2(
+                closest_pair[1].y - closest_pair[0].y,
+                closest_pair[1].x - closest_pair[0].x,
+            )
             self.closest_pair_angle_pub.publish(angle)
+
 
 if __name__ == "__main__":
     calculator = ClosestPairAngleCalculator()

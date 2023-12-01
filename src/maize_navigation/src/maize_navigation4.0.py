@@ -2,11 +2,12 @@
 
 import rospy
 import numpy as np
-from sensor_msgs.msg import PointCloud2, PointField,Joy
+from sensor_msgs.msg import PointCloud2, PointField, Joy
 from sensor_msgs import point_cloud2
 from geometry_msgs.msg import Twist, Point32
-from std_msgs.msg import Bool , Float32
+from std_msgs.msg import Bool, Float32
 from visualization_msgs.msg import Marker
+
 
 class PID:
     def __init__(self, kp, ki, kd, integral_limit):
@@ -19,7 +20,9 @@ class PID:
 
     def compute(self, error, dt):
         self.integral += error * dt
-        self.integral = max(min(self.integral, self.integral_limit), -self.integral_limit)
+        self.integral = max(
+            min(self.integral, self.integral_limit), -self.integral_limit
+        )
         derivative = (error - self.previous_error) / dt
         self.previous_error = error
         return self.kp * error + self.ki * self.integral + self.kd * derivative
@@ -27,19 +30,23 @@ class PID:
 
 class FieldRobotNavigator:
     def __init__(self):
-        rospy.init_node('field_robot_navigator')
+        rospy.init_node("field_robot_navigator")
 
         # Set up subscribers and publishers
-        rospy.Subscriber('/merged_point_cloud', PointCloud2, self.point_cloud_callback)
-        rospy.Subscriber('/teleop/automatic_mode', Bool, self.automatic_mode_callback)
-        rospy.Subscriber('/obstacle/obstacle_automatic_mode', Bool, self.obstacle_automatic_mode_callback)
-        rospy.Subscriber('/teleop/cmd_vel', Twist, self.teleop_cmd_vel_callback)
-        rospy.Subscriber('/teleop/movement_sequence', Joy, self.pattern_callback)
+        rospy.Subscriber("/merged_point_cloud", PointCloud2, self.point_cloud_callback)
+        rospy.Subscriber("/teleop/automatic_mode", Bool, self.automatic_mode_callback)
+        rospy.Subscriber(
+            "/obstacle/obstacle_automatic_mode",
+            Bool,
+            self.obstacle_automatic_mode_callback,
+        )
+        rospy.Subscriber("/teleop/cmd_vel", Twist, self.teleop_cmd_vel_callback)
+        rospy.Subscriber("/teleop/movement_sequence", Joy, self.pattern_callback)
         rospy.Subscriber("/closest_pair_angle", Float32, self.angle_callback)
-        self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
-        self.points_pub = rospy.Publisher('/field_points', PointCloud2, queue_size=1)
-        self.marker_pub = rospy.Publisher('/polynomial_markers', Marker, queue_size=10)
-        self.angle_pub = rospy.Publisher('angle_to_row', Float32, queue_size=10)
+        self.cmd_vel_pub = rospy.Publisher("/cmd_vel", Twist, queue_size=1)
+        self.points_pub = rospy.Publisher("/field_points", PointCloud2, queue_size=1)
+        self.marker_pub = rospy.Publisher("/polynomial_markers", Marker, queue_size=10)
+        self.angle_pub = rospy.Publisher("angle_to_row", Float32, queue_size=10)
         self.center_dist = rospy.Publisher("/center_dist", Float32, queue_size=10)
 
         # Initialize member variables
@@ -47,58 +54,58 @@ class FieldRobotNavigator:
         self.points = None
         self.drive_points = None
 
-        self.box = rospy.set_param('box', 'drive')
-        self.both_sides = rospy.set_param('both_sides', 'both')
+        self.box = rospy.set_param("box", "drive")
+        self.both_sides = rospy.set_param("both_sides", "both")
 
         self.last_linear_speed = 0
         self.pid_controller = PID(kp=2.25, ki=0.01, kd=0.75, integral_limit=1.0)
-        #kp=4 still ok kp5 swinging
+        # kp=4 still ok kp5 swinging
 
         self.last_cycle_time = rospy.Time.now()
 
         # Initialize parameters
-        self.x_min = self.x_min_drive_in_row = rospy.get_param('x_min_drive_in_row')
-        self.x_max = self.x_max_drive_in_row = rospy.get_param('x_max_drive_in_row')
-        self.y_min = self.y_min_drive_in_row = rospy.get_param('y_min_drive_in_row')
-        self.y_max = self.y_max_drive_in_row = rospy.get_param('y_max_drive_in_row')
+        self.x_min = self.x_min_drive_in_row = rospy.get_param("x_min_drive_in_row")
+        self.x_max = self.x_max_drive_in_row = rospy.get_param("x_max_drive_in_row")
+        self.y_min = self.y_min_drive_in_row = rospy.get_param("y_min_drive_in_row")
+        self.y_max = self.y_max_drive_in_row = rospy.get_param("y_max_drive_in_row")
 
-        self.x_min_turn_and_exit = rospy.get_param('x_min_turn_and_exit')
-        self.x_max_turn_and_exit = rospy.get_param('x_max_turn_and_exit')
-        self.y_min_turn_and_exit = rospy.get_param('y_min_turn_and_exit')
-        self.y_max_turn_and_exit = rospy.get_param('y_max_turn_and_exit')
+        self.x_min_turn_and_exit = rospy.get_param("x_min_turn_and_exit")
+        self.x_max_turn_and_exit = rospy.get_param("x_max_turn_and_exit")
+        self.y_min_turn_and_exit = rospy.get_param("y_min_turn_and_exit")
+        self.y_max_turn_and_exit = rospy.get_param("y_max_turn_and_exit")
 
-        self.x_min_counting_rows = rospy.get_param('x_min_counting_rows')
-        self.x_max_counting_rows = rospy.get_param('x_max_counting_rows')
-        self.y_min_counting_rows = rospy.get_param('y_min_counting_rows')
-        self.y_max_counting_rows = rospy.get_param('y_max_counting_rows')
+        self.x_min_counting_rows = rospy.get_param("x_min_counting_rows")
+        self.x_max_counting_rows = rospy.get_param("x_max_counting_rows")
+        self.y_min_counting_rows = rospy.get_param("y_min_counting_rows")
+        self.y_max_counting_rows = rospy.get_param("y_max_counting_rows")
 
-        self.x_min_turn_to_row = rospy.get_param('x_min_turn_to_row')
-        self.x_max_turn_to_row = rospy.get_param('x_max_turn_to_row')
-        self.y_min_turn_to_row = rospy.get_param('y_min_turn_to_row')
-        self.y_max_turn_to_row = rospy.get_param('y_max_turn_to_row')
+        self.x_min_turn_to_row = rospy.get_param("x_min_turn_to_row")
+        self.x_max_turn_to_row = rospy.get_param("x_max_turn_to_row")
+        self.y_min_turn_to_row = rospy.get_param("y_min_turn_to_row")
+        self.y_max_turn_to_row = rospy.get_param("y_max_turn_to_row")
 
-        self.x_min_turn_to_row_critic = rospy.get_param('x_min_turn_to_row_critic')
-        self.x_max_turn_to_row_critic = rospy.get_param('x_max_turn_to_row_critic')
-        self.y_min_turn_to_row_critic = rospy.get_param('y_min_turn_to_row_critic')
-        self.y_max_turn_to_row_critic = rospy.get_param('y_max_turn_to_row_critic')
+        self.x_min_turn_to_row_critic = rospy.get_param("x_min_turn_to_row_critic")
+        self.x_max_turn_to_row_critic = rospy.get_param("x_max_turn_to_row_critic")
+        self.y_min_turn_to_row_critic = rospy.get_param("y_min_turn_to_row_critic")
+        self.y_max_turn_to_row_critic = rospy.get_param("y_max_turn_to_row_critic")
 
-        self.row_width = rospy.get_param('row_width')
-        self.drive_out_dist =rospy.get_param('drive_out_dist')
-        self.max_dist_in_row = rospy.get_param('max_dist_in_row')
-        self.critic_row = rospy.get_param('critic_row')
+        self.row_width = rospy.get_param("row_width")
+        self.drive_out_dist = rospy.get_param("drive_out_dist")
+        self.max_dist_in_row = rospy.get_param("max_dist_in_row")
+        self.critic_row = rospy.get_param("critic_row")
 
-        self.vel_linear_drive =rospy.get_param('vel_linear_drive')
-        self.vel_linear_count= rospy.get_param('vel_linear_count')
-        self.vel_linear_turn =rospy.get_param('vel_linear_turn')
+        self.vel_linear_drive = rospy.get_param("vel_linear_drive")
+        self.vel_linear_count = rospy.get_param("vel_linear_count")
+        self.vel_linear_turn = rospy.get_param("vel_linear_turn")
 
-        self.last_state = 'drive_in_row'
-        
+        self.last_state = "drive_in_row"
+
         # Initialize state variables
-        self.current_state = 'drive_in_row' #'manual_mode'
-        self.pattern = rospy.get_param('pattern')
+        self.current_state = "drive_in_row"  #'manual_mode'
+        self.pattern = rospy.get_param("pattern")
         self.automatic_mode = True
         self.obstacle_automatic_mode = True
-        self.teleop_cmd_vel=Twist()
+        self.teleop_cmd_vel = Twist()
         self.teleop_cmd_vel.linear.x = 0
         self.teleop_cmd_vel.angular.z = 0
 
@@ -109,25 +116,25 @@ class FieldRobotNavigator:
         self.x_max = self.x_max_drive_in_row
         self.y_min = self.y_min_drive_in_row
         self.y_max = self.y_max_drive_in_row
-        
+
     def set_exit_params(self):
-       self.x_min = self.x_min_turn_and_exit
-       self.x_max = self.x_max_turn_and_exit
-       self.y_min = self.y_min_turn_and_exit
-       self.y_max = self.y_max_turn_and_exit
-    
+        self.x_min = self.x_min_turn_and_exit
+        self.x_max = self.x_max_turn_and_exit
+        self.y_min = self.y_min_turn_and_exit
+        self.y_max = self.y_max_turn_and_exit
+
     def set_counting_params(self):
         self.x_min = self.x_min_counting_rows
         self.x_max = self.x_max_counting_rows
         self.y_min = self.y_min_counting_rows
         self.y_max = self.y_max_counting_rows
 
-    def set_turn_to_row_params(self,flag):
+    def set_turn_to_row_params(self, flag):
         if flag != True:
-            self.x_min = self.x_min_turn_to_row 
-            self.x_max = self.x_max_turn_to_row 
-            self.y_min = self.y_min_turn_to_row 
-            self.y_max = self.y_max_turn_to_row 
+            self.x_min = self.x_min_turn_to_row
+            self.x_max = self.x_max_turn_to_row
+            self.y_min = self.y_min_turn_to_row
+            self.y_max = self.y_max_turn_to_row
         else:
             self.x_min = self.x_min_turn_to_row_critic
             self.x_max = self.x_max_turn_to_row_critic
@@ -156,27 +163,43 @@ class FieldRobotNavigator:
     def point_cloud_callback(self, msg):
         points = []
         drive_points = []
-        both_sides = rospy.get_param('both_sides')
-        min_distance = float('inf')  # initialize minimum distance with infinity
+        both_sides = rospy.get_param("both_sides")
+        min_distance = float("inf")  # initialize minimum distance with infinity
 
-        for p in point_cloud2.read_points(msg, field_names=("x", "y", "z"), skip_nans=True):
+        for p in point_cloud2.read_points(
+            msg, field_names=("x", "y", "z"), skip_nans=True
+        ):
             point = Point32(*p)
-            distance = np.sqrt(point.x**2 + point.y**2)  # calculate Euclidean distance
+            distance = np.sqrt(
+                point.x**2 + point.y**2
+            )  # calculate Euclidean distance
 
             if distance < min_distance:
                 min_distance = distance
-            if self.current_state == 'drive_in_row':
-                if self.y_min_drive_in_row < np.abs(point.y) < self.y_max_drive_in_row and self.x_min_drive_in_row< point.x < self.x_max_drive_in_row:
+            if self.current_state == "drive_in_row":
+                if (
+                    self.y_min_drive_in_row < np.abs(point.y) < self.y_max_drive_in_row
+                    and self.x_min_drive_in_row < point.x < self.x_max_drive_in_row
+                ):
                     drive_points.append(point)
                     points = drive_points
-            if both_sides == 'both'and self.current_state != 'drive_in_row':
-                if self.y_min < np.abs(point.y) < self.y_max and self.x_min < point.x < self.x_max:
+            if both_sides == "both" and self.current_state != "drive_in_row":
+                if (
+                    self.y_min < np.abs(point.y) < self.y_max
+                    and self.x_min < point.x < self.x_max
+                ):
                     points.append(point)
-            elif both_sides == 'L':
-                if -self.y_max < point.y < -self.y_min and self.x_min < point.x < self.x_max:
+            elif both_sides == "L":
+                if (
+                    -self.y_max < point.y < -self.y_min
+                    and self.x_min < point.x < self.x_max
+                ):
                     points.append(point)
-            elif both_sides == 'R':
-                if self.y_min < point.y < self.y_max and self.x_min < point.x < self.x_max:
+            elif both_sides == "R":
+                if (
+                    self.y_min < point.y < self.y_max
+                    and self.x_min < point.x < self.x_max
+                ):
                     points.append(point)
         self.min_dist = min_distance
         self.points = points
@@ -185,9 +208,11 @@ class FieldRobotNavigator:
         # Publish self.points
         header = msg.header
         header.frame_id = "laserFront"
-        fields = [PointField('x', 0, PointField.FLOAT32, 1),
-                  PointField('y', 4, PointField.FLOAT32, 1),
-                  PointField('z', 8, PointField.FLOAT32, 1)]
+        fields = [
+            PointField("x", 0, PointField.FLOAT32, 1),
+            PointField("y", 4, PointField.FLOAT32, 1),
+            PointField("z", 8, PointField.FLOAT32, 1),
+        ]
         points = [(p.x, p.y, p.z) for p in self.points]
         cloud = point_cloud2.create_cloud(header, fields, points)
         self.points_pub.publish(cloud)
@@ -205,45 +230,44 @@ class FieldRobotNavigator:
                 rate.sleep()
                 continue
             else:
-                if self.current_state == 'drive_in_row':
+                if self.current_state == "drive_in_row":
                     self.drive_in_row()
-                elif self.current_state == 'turn_and_exit':
+                elif self.current_state == "turn_and_exit":
                     self.turn_and_exit()
-                elif self.current_state == 'counting_rows':
+                elif self.current_state == "counting_rows":
                     self.counting_rows()
-                elif self.current_state == 'turn_to_row':
+                elif self.current_state == "turn_to_row":
                     self.turn_to_row()
-                elif self.current_state == 'manual_mode':
+                elif self.current_state == "manual_mode":
                     self.manual_mode()
-                    
 
                 rate.sleep()
 
-    def pattern_callback(self,msg):
-    # Callback function to process the received message
+    def pattern_callback(self, msg):
+        # Callback function to process the received message
         buttons = msg.buttons
         pattern = []
 
         # Iterate over the buttons list with a step size of 2
         for i in range(0, len(buttons), 2):
             button_count = buttons[i]
-            button_value = buttons[i+1]
-            if button_value==1:
-                button_value='L'
+            button_value = buttons[i + 1]
+            if button_value == 1:
+                button_value = "L"
             else:
-                button_value='R'    
+                button_value = "R"
             pattern.append([button_count, button_value])
             self.pattern = pattern
 
-    def automatic_mode_callback(self,msg):
-    # Callback function to process the received message
+    def automatic_mode_callback(self, msg):
+        # Callback function to process the received message
         self.automatic_mode = msg.data
-    
-    def obstacle_automatic_mode_callback(self,msg):
+
+    def obstacle_automatic_mode_callback(self, msg):
         self.obstacle_automatic_mode = msg.data
 
-    def teleop_cmd_vel_callback(self,msg):
-    # Callback function to process the received message
+    def teleop_cmd_vel_callback(self, msg):
+        # Callback function to process the received message
         self.teleop_cmd_vel.linear.x = msg.linear.x
         self.teleop_cmd_vel.angular.z = msg.angular.z
 
@@ -252,23 +276,23 @@ class FieldRobotNavigator:
         cmd_vel = Twist()
         cmd_vel = self.teleop_cmd_vel
         self.cmd_vel_pub.publish(cmd_vel)
-        if self.automatic_mode==True and self.obstacle_automatic_mode==True:
-            self.current_state='drive_in_row'#self.last_state
+        if self.automatic_mode == True and self.obstacle_automatic_mode == True:
+            self.current_state = "drive_in_row"  # self.last_state
 
     def drive_in_row(self):
         rospy.loginfo("Driving in row...")
         # Calculate the average distance to the robot on both sides within x and y limits
-        rospy.set_param('box', 'drive')
-        rospy.set_param('both_sides', 'both')
+        rospy.set_param("box", "drive")
+        rospy.set_param("both_sides", "both")
 
-                # Separating the points to the left and right
+        # Separating the points to the left and right
         left_points = [p for p in self.drive_points if p.y < 0]
         right_points = [p for p in self.drive_points if p.y >= 0]
         # Calculate cycle time
         current_time = rospy.Time.now()
         cycle_time = (current_time - self.last_cycle_time).to_sec()
-        self.last_cycle_time = current_time  
-        #vel_linear_drive = self.vel_linear_drive# Update last_cycle_time for the next cycle
+        self.last_cycle_time = current_time
+        # vel_linear_drive = self.vel_linear_drive# Update last_cycle_time for the next cycle
 
         # Calculate validation_x using the last published linear speed
         validation_x = 5 * cycle_time * self.last_linear_speed
@@ -289,10 +313,10 @@ class FieldRobotNavigator:
                 rospy.sleep(0.1)
 
             self.set_exit_params()
-            rospy.set_param('box', 'exit')
-            rospy.set_param('both_sides', self.pattern[self.driven_row][1])
-            self.driven_row += 1 
-            self.current_state = 'turn_and_exit'
+            rospy.set_param("box", "exit")
+            rospy.set_param("both_sides", self.pattern[self.driven_row][1])
+            self.driven_row += 1
+            self.current_state = "turn_and_exit"
             pass
         else:
             # Preparing data for polynomial fitting
@@ -304,166 +328,188 @@ class FieldRobotNavigator:
             if len(left_x) > 0:
                 min_left_x, max_left_x = np.min(left_x), np.max(left_x)
             else:
-                min_left_x, max_left_x = None,None   # or set to some other default value
+                min_left_x, max_left_x = (
+                    None,
+                    None,
+                )  # or set to some other default value
 
             if len(right_x) > 0:
                 min_right_x, max_right_x = np.min(right_x), np.max(right_x)
             else:
-                min_right_x, max_right_x = None,None  # or set to some other default value
+                min_right_x, max_right_x = (
+                    None,
+                    None,
+                )  # or set to some other default value
 
-            if ((min_left_x is not None and 0 < min_left_x) or 
-                (min_right_x is not None and 0 < min_right_x) or 
-                (max_left_x is not None and poly_min_dist_req > max_left_x) or 
-                (max_right_x is not None and poly_min_dist_req > max_right_x)
-                ):
-
+            if (
+                (min_left_x is not None and 0 < min_left_x)
+                or (min_right_x is not None and 0 < min_right_x)
+                or (max_left_x is not None and poly_min_dist_req > max_left_x)
+                or (max_right_x is not None and poly_min_dist_req > max_right_x)
+            ):
                 rospy.loginfo("AVG Control!")
-                left_dist = np.mean(left_y) if len(left_y) > 1 else np.inf #left is negative usually
+                left_dist = (
+                    np.mean(left_y) if len(left_y) > 1 else np.inf
+                )  # left is negative usually
                 right_dist = np.mean(right_y) if len(right_y) > 1 else np.inf
                 if np.isinf(left_dist):
-                   left_dist=right_dist-self.row_width
+                    left_dist = right_dist - self.row_width
                 if np.isinf(right_dist):
-                    right_dist=left_dist+self.row_width
+                    right_dist = left_dist + self.row_width
             else:
                 # Fitting a polynomial of degree 3 to the points, if there are enough points
-                left_poly_coeffs = np.polyfit(left_x, left_y, 3) if len(left_points) >= 6 else None
-                right_poly_coeffs = np.polyfit(right_x, right_y,  3) if len(right_points) >= 6 else None
+                left_poly_coeffs = (
+                    np.polyfit(left_x, left_y, 3) if len(left_points) >= 6 else None
+                )
+                right_poly_coeffs = (
+                    np.polyfit(right_x, right_y, 3) if len(right_points) >= 6 else None
+                )
 
                 if left_poly_coeffs is not None:
                     # Calculating the distance to the left at x=0 using the polynomial equation
                     left_dist = np.polyval(left_poly_coeffs, validation_x)
-                    self.publish_poly_marker(left_poly_coeffs, 'left_poly', -0.3, 1.5)
-                    #left_derivative_poly = np.polyder(left_poly_coeffs)
-                    #left_derivative_value = np.polyval(left_derivative_poly, validation_x)
+                    self.publish_poly_marker(left_poly_coeffs, "left_poly", -0.3, 1.5)
+                    # left_derivative_poly = np.polyder(left_poly_coeffs)
+                    # left_derivative_value = np.polyval(left_derivative_poly, validation_x)
                 else:
                     # If not enough points on the left, use a default or previously calculated value
-                    left_dist = np.polyval(right_poly_coeffs, validation_x) - self.row_width if right_poly_coeffs is not None else np.inf
+                    left_dist = (
+                        np.polyval(right_poly_coeffs, validation_x) - self.row_width
+                        if right_poly_coeffs is not None
+                        else np.inf
+                    )
 
                 if right_poly_coeffs is not None:
                     # Calculating the distance to the right at x=0 using the polynomial equation
                     right_dist = np.polyval(right_poly_coeffs, validation_x)
-                    self.publish_poly_marker(right_poly_coeffs, 'right_poly', -0.3, 1.5)
-                    #right_derivative_poly = np.polyder(right_poly_coeffs)
-                    #right_derivative_value = np.polyval(right_derivative_poly, validation_x)
+                    self.publish_poly_marker(right_poly_coeffs, "right_poly", -0.3, 1.5)
+                    # right_derivative_poly = np.polyder(right_poly_coeffs)
+                    # right_derivative_value = np.polyval(right_derivative_poly, validation_x)
                 else:
                     # If not enough points on the right, use a default or previously calculated value
-                    right_dist = self.row_width + np.polyval(left_poly_coeffs, validation_x) if left_poly_coeffs is not None else np.inf
+                    right_dist = (
+                        self.row_width + np.polyval(left_poly_coeffs, validation_x)
+                        if left_poly_coeffs is not None
+                        else np.inf
+                    )
 
                 # Calculate the average derivative value
-                '''if left_poly_coeffs is not None and right_poly_coeffs is not None:
+                """if left_poly_coeffs is not None and right_poly_coeffs is not None:
                     avg_derivative_value = (left_derivative_value + right_derivative_value) / 2.0
                     # Calculate the angle to the row using atan
                     angle_to_row = np.arctan(avg_derivative_value)
                     angle_msg = Float32()
                     angle_msg.data = np.degrees(angle_to_row)
                     # Publish the angle message
-                    self.angle_pub.publish(angle_msg)'''
-                
-            
+                    self.angle_pub.publish(angle_msg)"""
+
             center_dist = right_dist + left_dist
             angular_correction = self.pid_controller.compute(center_dist, cycle_time)
-        
+
             rospy.loginfo("Distance to center: %f", center_dist)
             self.center_dist.publish(center_dist)
             # Adjust the angular velocity to center the robot between the rows
             cmd_vel = Twist()
-            cmd_vel.angular.z = -angular_correction#-center_dist*3*self.vel_linear_drive
+            cmd_vel.angular.z = (
+                -angular_correction
+            )  # -center_dist*3*self.vel_linear_drive
 
-            if np.abs(center_dist)> self.max_dist_in_row-0.05:
+            if np.abs(center_dist) > self.max_dist_in_row - 0.05:
                 cmd_vel.linear.x = 0.1
-                if    np.abs(center_dist) > self.max_dist_in_row:
+                if np.abs(center_dist) > self.max_dist_in_row:
                     cmd_vel.linear.x = 0
-                    rospy.logwarn('Too close to row!!!')
+                    rospy.logwarn("Too close to row!!!")
             else:
-                cmd_vel.linear.x = self.vel_linear_drive*(self.max_dist_in_row-np.abs(center_dist))/self.max_dist_in_row
+                cmd_vel.linear.x = (
+                    self.vel_linear_drive
+                    * (self.max_dist_in_row - np.abs(center_dist))
+                    / self.max_dist_in_row
+                )
             rospy.loginfo("Publishing to cmd_vel: %s", cmd_vel)
-        self.last_linear_speed = cmd_vel.linear.x 
+        self.last_linear_speed = cmd_vel.linear.x
         self.cmd_vel_pub.publish(cmd_vel)
-        if self.automatic_mode==False or self.obstacle_automatic_mode==False:
-            self.last_state=self.current_state
-            self.current_state='manual_mode'           
-
-
+        if self.automatic_mode == False or self.obstacle_automatic_mode == False:
+            self.last_state = self.current_state
+            self.current_state = "manual_mode"
 
     def turn_and_exit(self):
         rospy.loginfo("Turn and exit...")
         # Calculate the average distance to the robot on both sides within x and y limits
         points_x = [p.x for p in self.points]
-        x_mean = np.mean(points_x) if len(points_x) > 0 else np.inf 
+        x_mean = np.mean(points_x) if len(points_x) > 0 else np.inf
         rospy.loginfo("xmean: %f", x_mean)
         if -0.08 < x_mean < 0.08:
-        #if np.abs(self.angle) > 75:
+            # if np.abs(self.angle) > 75:
             cmd_vel = Twist()
             rospy.loginfo("Aligned to the rows...")
             self.set_counting_params()
-            if self.pattern[self.driven_row-1][0]==1:
+            if self.pattern[self.driven_row - 1][0] == 1:
                 if self.driven_row in self.critic_row:
-                    self.set_turn_to_row_params(True) #True means critic params
-                    rospy.set_param('box', 'turn_crit')
+                    self.set_turn_to_row_params(True)  # True means critic params
+                    rospy.set_param("box", "turn_crit")
                 else:
                     self.set_turn_to_row_params(False)
-                    rospy.set_param('box', 'turn')
+                    rospy.set_param("box", "turn")
 
-                rospy.set_param('both_sides', 'both')
-                self.current_state = 'turn_to_row'
-            else:    
-                rospy.set_param('box', 'count')
+                rospy.set_param("both_sides", "both")
+                self.current_state = "turn_to_row"
+            else:
+                rospy.set_param("box", "count")
                 self.row_counter = 1
                 self.previous_row = 1
                 self.actual_row = 1
                 self.actual_dist = self.min_dist
-                self.current_state = 'counting_rows'
+                self.current_state = "counting_rows"
 
         else:
             if 0 <= self.driven_row < len(self.pattern):
-                if self.pattern[self.driven_row-1][1] == 'L':
+                if self.pattern[self.driven_row - 1][1] == "L":
                     # Calculate the actual distance to the center of both sides
                     rospy.loginfo("Turning left until parallel...")
                     # Adjust the angular velocity to center the robot between the rows
                     cmd_vel = Twist()
                     cmd_vel.linear.x = self.vel_linear_turn
-                    radius = self.row_width/2
-                    cmd_vel.angular.z = self.vel_linear_turn/radius
-                elif self.pattern[self.driven_row-1][1] == 'R':
+                    radius = self.row_width / 2
+                    cmd_vel.angular.z = self.vel_linear_turn / radius
+                elif self.pattern[self.driven_row - 1][1] == "R":
                     rospy.loginfo("Turning right until parallel...")
                     cmd_vel = Twist()
                     cmd_vel.linear.x = self.vel_linear_turn
-                    radius = -self.row_width/2
-                    cmd_vel.angular.z = self.vel_linear_turn/radius
+                    radius = -self.row_width / 2
+                    cmd_vel.angular.z = self.vel_linear_turn / radius
                 else:
                     rospy.logwarn("Invalid direction at driven_row index")
                     cmd_vel = Twist()
             else:
                 rospy.loginfo("Pattern is now finished")
                 cmd_vel = Twist()
-                
 
             rospy.loginfo("Publishing to cmd_vel: %s", cmd_vel)
 
         self.cmd_vel_pub.publish(cmd_vel)
-        if self.automatic_mode==False or self.obstacle_automatic_mode==False:
-            self.last_state=self.current_state
-            self.current_state='manual_mode'
+        if self.automatic_mode == False or self.obstacle_automatic_mode == False:
+            self.last_state = self.current_state
+            self.current_state = "manual_mode"
 
     def counting_rows(self):
         rospy.loginfo("counting rows...")
         # Calculate the average distance to the robot on both sides within x and y limits
-        if self.pattern[self.driven_row-1][0] == self.row_counter:
+        if self.pattern[self.driven_row - 1][0] == self.row_counter:
             rospy.loginfo("start turning to row...")
             if self.driven_row in self.critic_row:
                 self.set_turn_to_row_params(True)
-                rospy.set_param('box', 'turn_crit')
+                rospy.set_param("box", "turn_crit")
             else:
                 self.set_turn_to_row_params(False)
-                rospy.set_param('box', 'turn')
-            rospy.set_param('both_sides', 'both')
-            
-            self.current_state = 'turn_to_row'
+                rospy.set_param("box", "turn")
+            rospy.set_param("both_sides", "both")
+
+            self.current_state = "turn_to_row"
         else:
-            if self.pattern[self.driven_row-1][1]=='L':
-                gain=2.5
-            elif self.pattern[self.driven_row-1][1]=='R':
-                gain=-2.5
+            if self.pattern[self.driven_row - 1][1] == "L":
+                gain = 2.5
+            elif self.pattern[self.driven_row - 1][1] == "R":
+                gain = -2.5
 
             # Calculate the actual distance to the center of both sides
             rospy.loginfo("Holding Distance, driving parallel")
@@ -471,45 +517,49 @@ class FieldRobotNavigator:
             cmd_vel = Twist()
             cmd_vel.linear.x = self.vel_linear_count
             rospy.loginfo("No. of points in Box %i", len(self.points))
-            if  len(self.points)>1:
-                 # Compute the shortest y distance
-                cmd_vel.angular.z = gain*(self.min_dist - self.actual_dist)
-                rospy.loginfo("Gap to desired distance:%f",self.min_dist - self.actual_dist)
+            if len(self.points) > 1:
+                # Compute the shortest y distance
+                cmd_vel.angular.z = gain * (self.min_dist - self.actual_dist)
+                rospy.loginfo(
+                    "Gap to desired distance:%f", self.min_dist - self.actual_dist
+                )
                 self.actual_row = 1
             else:
-                    cmd_vel.angular.z = 0
-                    self.actual_row = 0
+                cmd_vel.angular.z = 0
+                self.actual_row = 0
             if self.actual_row > self.previous_row:
-               self.row_counter+=1
-               rospy.loginfo("Increment row_counter to %i", self.row_counter)
+                self.row_counter += 1
+                rospy.loginfo("Increment row_counter to %i", self.row_counter)
 
-            rospy.loginfo("Passing row %i of %i", self.row_counter, self.pattern[self.driven_row-1][0])
-            self.previous_row=self.actual_row     
+            rospy.loginfo(
+                "Passing row %i of %i",
+                self.row_counter,
+                self.pattern[self.driven_row - 1][0],
+            )
+            self.previous_row = self.actual_row
             rospy.loginfo("Publishing to cmd_vel: %s", cmd_vel)
             self.cmd_vel_pub.publish(cmd_vel)
-            if self.automatic_mode==False or self.obstacle_automatic_mode==False:
-                self.last_state=self.current_state
-                self.current_state='manual_mode'
-                
-
+            if self.automatic_mode == False or self.obstacle_automatic_mode == False:
+                self.last_state = self.current_state
+                self.current_state = "manual_mode"
 
     def turn_to_row(self):
         rospy.loginfo("Turn to row...")
         # Calculate the average distance to the robot on both sides within x and y limits
-        #points_y = [p.y for p in self.points]
-        #y_mean = np.mean((points_y)) if len(points_y) > 0 else np.inf #left is negative usually
-        #rospy.loginfo("ymean: %f", y_mean)
+        # points_y = [p.y for p in self.points]
+        # y_mean = np.mean((points_y)) if len(points_y) > 0 else np.inf #left is negative usually
+        # rospy.loginfo("ymean: %f", y_mean)
         if np.abs(self.angle) < 5:
             cmd_vel = Twist()
             rospy.loginfo("Start driving in row...")
             self.set_drive_params()
-            self.current_state = 'drive_in_row'
+            self.current_state = "drive_in_row"
         else:
             if 0 <= self.driven_row < len(self.pattern):
-                if self.pattern[self.driven_row-1][1] == 'L':
+                if self.pattern[self.driven_row - 1][1] == "L":
                     gain = 1
-                elif self.pattern[self.driven_row-1][1] == 'R':
-                    gain=-1
+                elif self.pattern[self.driven_row - 1][1] == "R":
+                    gain = -1
                 else:
                     rospy.logwarn("Invalid direction at driven_row index")
                     cmd_vel = Twist()
@@ -517,8 +567,8 @@ class FieldRobotNavigator:
                 rospy.loginfo("Turning right until parallel...")
                 cmd_vel = Twist()
                 cmd_vel.linear.x = self.vel_linear_turn
-                radius = gain*self.row_width/2
-                cmd_vel.angular.z = self.vel_linear_turn/radius
+                radius = gain * self.row_width / 2
+                cmd_vel.angular.z = self.vel_linear_turn / radius
             else:
                 rospy.logwarn("Driven_row index out of range")
                 cmd_vel = Twist()
@@ -526,11 +576,11 @@ class FieldRobotNavigator:
             rospy.loginfo("Publishing to cmd_vel: %s", cmd_vel)
 
         self.cmd_vel_pub.publish(cmd_vel)
-        if self.automatic_mode==False or self.obstacle_automatic_mode==False:
-            self.last_state=self.current_state
-            self.current_state='manual_mode'
+        if self.automatic_mode == False or self.obstacle_automatic_mode == False:
+            self.last_state = self.current_state
+            self.current_state = "manual_mode"
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     navigator = FieldRobotNavigator()
     navigator.navigate()

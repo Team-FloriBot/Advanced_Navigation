@@ -8,14 +8,22 @@ import re
 from serial import SerialException
 import sys
 
-from xsens_driver.mtdef import MTException, MTErrorMessage, MTTimeoutException, OutputMode, OutputSettings
+from xsens_driver.mtdef import (
+    MTException,
+    MTErrorMessage,
+    MTTimeoutException,
+    OutputMode,
+    OutputSettings,
+)
 from xsens_driver.mtdevice import find_devices, find_baudrate, MTDevice
+
 
 ################################################################
 # Documentation for stand alone usage
 ################################################################
 def usage():
-    print("""MT device driver.
+    print(
+        """MT device driver.
 Usage:
     ./mtdevice.py [commands] [opts]
 
@@ -319,7 +327,8 @@ Deprecated options:
             115200/(PERIOD * (SKIPFACTOR + 1))
         If the value is 0xffff, no data is send unless a ReqData request
         is made.
-""")
+"""
+    )
 
 
 ################################################################
@@ -327,13 +336,31 @@ Deprecated options:
 ################################################################
 def main():
     # parse command line
-    shopts = 'hra:c:eild:b:m:s:p:f:x:vy:u:g:o:j:t:w:'
-    lopts = ['help', 'reset', 'change-baudrate=', 'configure=', 'echo',
-             'inspect', 'legacy-configure', 'device=', 'baudrate=',
-             'output-mode=', 'output-settings=', 'period=',
-             'deprecated-skip-factor=', 'xkf-scenario=', 'verbose',
-             'synchronization=', 'utc-time=', 'gnss-platform=',
-             'option-flags=', 'icc-command=', 'timeout=', 'initial-wait=']
+    shopts = "hra:c:eild:b:m:s:p:f:x:vy:u:g:o:j:t:w:"
+    lopts = [
+        "help",
+        "reset",
+        "change-baudrate=",
+        "configure=",
+        "echo",
+        "inspect",
+        "legacy-configure",
+        "device=",
+        "baudrate=",
+        "output-mode=",
+        "output-settings=",
+        "period=",
+        "deprecated-skip-factor=",
+        "xkf-scenario=",
+        "verbose",
+        "synchronization=",
+        "utc-time=",
+        "gnss-platform=",
+        "option-flags=",
+        "icc-command=",
+        "timeout=",
+        "initial-wait=",
+    ]
     try:
         opts, args = getopt.gnu_getopt(sys.argv[1:], shopts, lopts)
     except getopt.GetoptError as e:
@@ -341,7 +368,7 @@ def main():
         usage()
         return 1
     # default values
-    device = '/dev/ttyUSB0'
+    device = "/dev/ttyUSB0"
     baudrate = 115200
     timeout = 0.002
     initial_wait = 0.1
@@ -357,99 +384,99 @@ def main():
 
     # filling in arguments
     for o, a in opts:
-        if o in ('-h', '--help'):
+        if o in ("-h", "--help"):
             usage()
             return
-        elif o in ('-r', '--reset'):
-            actions.append('reset')
-        elif o in ('-a', '--change-baudrate'):
+        elif o in ("-r", "--reset"):
+            actions.append("reset")
+        elif o in ("-a", "--change-baudrate"):
             try:
                 new_baudrate = int(a)
             except ValueError:
                 print("change-baudrate argument must be integer.")
                 return 1
-            actions.append('change-baudrate')
-        elif o in ('-c', '--configure'):
+            actions.append("change-baudrate")
+        elif o in ("-c", "--configure"):
             output_config = get_output_config(a)
             if output_config is None:
                 return 1
-            actions.append('configure')
-        elif o in ('-e', '--echo'):
-            actions.append('echo')
-        elif o in ('-i', '--inspect'):
-            actions.append('inspect')
-        elif o in ('-l', '--legacy-configure'):
-            actions.append('legacy-configure')
-        elif o in ('-x', '--xkf-scenario'):
+            actions.append("configure")
+        elif o in ("-e", "--echo"):
+            actions.append("echo")
+        elif o in ("-i", "--inspect"):
+            actions.append("inspect")
+        elif o in ("-l", "--legacy-configure"):
+            actions.append("legacy-configure")
+        elif o in ("-x", "--xkf-scenario"):
             try:
                 new_xkf = int(a)
             except ValueError:
                 print("xkf-scenario argument must be integer.")
                 return 1
-            actions.append('xkf-scenario')
-        elif o in ('-y', '--synchronization'):
+            actions.append("xkf-scenario")
+        elif o in ("-y", "--synchronization"):
             new_sync_settings = get_synchronization_settings(a)
             if new_sync_settings is None:
                 return 1
             sync_settings.append(new_sync_settings)
-            actions.append('synchronization')
-        elif o in ('-u', '--setUTCtime'):
+            actions.append("synchronization")
+        elif o in ("-u", "--setUTCtime"):
             UTCtime_settings = get_UTCtime(a)
             if UTCtime_settings is None:
                 return 1
-            actions.append('setUTCtime')
-        elif o in ('-d', '--device'):
+            actions.append("setUTCtime")
+        elif o in ("-d", "--device"):
             device = a
-        elif o in ('-b', '--baudrate'):
+        elif o in ("-b", "--baudrate"):
             try:
                 baudrate = int(a)
             except ValueError:
                 print("baudrate argument must be integer.")
                 return 1
-        elif o in ('-m', '--output-mode'):
+        elif o in ("-m", "--output-mode"):
             mode = get_mode(a)
             if mode is None:
                 return 1
-        elif o in ('-s', '--output-settings'):
+        elif o in ("-s", "--output-settings"):
             settings = get_settings(a)
             if settings is None:
                 return 1
-        elif o in ('-p', '--period'):
+        elif o in ("-p", "--period"):
             try:
                 period = int(a)
             except ValueError:
                 print("period argument must be integer.")
                 return 1
-        elif o in ('-f', '--deprecated-skip-factor'):
+        elif o in ("-f", "--deprecated-skip-factor"):
             try:
                 skipfactor = int(a)
             except ValueError:
                 print("skip-factor argument must be integer.")
                 return 1
-        elif o in ('-v', '--verbose'):
+        elif o in ("-v", "--verbose"):
             verbose = True
-        elif o in ('-g', '--gnss-platform'):
+        elif o in ("-g", "--gnss-platform"):
             platform = get_gnss_platform(a)
             if platform is None:
                 return 1
-            actions.append('gnss-platform')
-        elif o in ('-o', '--option-flags'):
+            actions.append("gnss-platform")
+        elif o in ("-o", "--option-flags"):
             flag_tuple = get_option_flags(a)
             if flag_tuple is None:
                 return 1
-            actions.append('option-flags')
-        elif o in ('-j', '--icc-command'):
+            actions.append("option-flags")
+        elif o in ("-j", "--icc-command"):
             icc_command = get_icc_command(a)
             if icc_command is None:
                 return 1
-            actions.append('icc-command')
-        elif o in ('-t', '--timeout'):
+            actions.append("icc-command")
+        elif o in ("-t", "--timeout"):
             try:
                 timeout = float(a)
             except ValueError:
                 print("timeout argument must be a floating number.")
                 return 1
-        elif o in ('-w', '--initial-wait'):
+        elif o in ("-w", "--initial-wait"):
             try:
                 initial_wait = float(a)
             except ValueError:
@@ -458,14 +485,17 @@ def main():
 
     # if nothing else: echo
     if len(actions) == 0:
-        actions.append('echo')
+        actions.append("echo")
     try:
-        if device == 'auto':
-            devs = find_devices(timeout=timeout, verbose=verbose,
-                                initial_wait=initial_wait)
+        if device == "auto":
+            devs = find_devices(
+                timeout=timeout, verbose=verbose, initial_wait=initial_wait
+            )
             if devs:
-                print("Detected devices:", "".join('\n\t%s @ %d' % (d, p)
-                                                   for d, p in devs))
+                print(
+                    "Detected devices:",
+                    "".join("\n\t%s @ %d" % (d, p) for d, p in devs),
+                )
                 print("Using %s @ %d" % devs[0])
                 device, baudrate = devs[0]
             else:
@@ -473,71 +503,84 @@ def main():
                 return 1
         # find baudrate
         if not baudrate:
-            baudrate = find_baudrate(device, timeout=timeout, verbose=verbose,
-                                     initial_wait=initial_wait)
+            baudrate = find_baudrate(
+                device, timeout=timeout, verbose=verbose, initial_wait=initial_wait
+            )
         if not baudrate:
             print("No suitable baudrate found.")
             return 1
         # open device
         try:
-            mt = MTDevice(device, baudrate, timeout=timeout, verbose=verbose,
-                          initial_wait=initial_wait)
+            mt = MTDevice(
+                device,
+                baudrate,
+                timeout=timeout,
+                verbose=verbose,
+                initial_wait=initial_wait,
+            )
         except SerialException:
             raise MTException("unable to open %s" % device)
         # execute actions
-        if 'inspect' in actions:
+        if "inspect" in actions:
             inspect(mt, device, baudrate)
-        if 'change-baudrate' in actions:
-            print("Changing baudrate from %d to %d:" % (baudrate,
-                                                        new_baudrate), end=' ')
+        if "change-baudrate" in actions:
+            print(
+                "Changing baudrate from %d to %d:" % (baudrate, new_baudrate), end=" "
+            )
             sys.stdout.flush()
             mt.ChangeBaudrate(new_baudrate)
             print(" Ok")  # should we test that it was actually ok?
-        if 'reset' in actions:
-            print("Restoring factory defaults", end=' ')
+        if "reset" in actions:
+            print("Restoring factory defaults", end=" ")
             sys.stdout.flush()
             mt.RestoreFactoryDefaults()
             print(" Ok")  # should we test that it was actually ok?
-        if 'configure' in actions:
-            print("Changing output configuration", end=' ')
+        if "configure" in actions:
+            print("Changing output configuration", end=" ")
             sys.stdout.flush()
             mt.SetOutputConfiguration(output_config)
             print(" Ok")  # should we test that it was actually ok?
-        if 'synchronization' in actions:
-            print("Changing synchronization settings", end=' ')
+        if "synchronization" in actions:
+            print("Changing synchronization settings", end=" ")
             sys.stdout.flush()
             mt.SetSyncSettings(sync_settings)
             print(" Ok")  # should we test that it was actually ok?
-        if 'setUTCtime' in actions:
-            print("Setting UTC time in the device", end=' ')
+        if "setUTCtime" in actions:
+            print("Setting UTC time in the device", end=" ")
             sys.stdout.flush()
-            mt.SetUTCTime(UTCtime_settings[6],
-                          UTCtime_settings[0],
-                          UTCtime_settings[1],
-                          UTCtime_settings[2],
-                          UTCtime_settings[3],
-                          UTCtime_settings[4],
-                          UTCtime_settings[5],
-                          UTCtime_settings[7])
+            mt.SetUTCTime(
+                UTCtime_settings[6],
+                UTCtime_settings[0],
+                UTCtime_settings[1],
+                UTCtime_settings[2],
+                UTCtime_settings[3],
+                UTCtime_settings[4],
+                UTCtime_settings[5],
+                UTCtime_settings[7],
+            )
             print(" Ok")  # should we test that it was actually ok?
-        if 'gnss-platform' in actions:
-            print("Setting GNSS platform", end=' ')
+        if "gnss-platform" in actions:
+            print("Setting GNSS platform", end=" ")
             sys.stdout.flush()
             mt.SetGnssPlatform(platform)
             print(" Ok")  # should we test that it was actually ok?
-        if 'option-flags' in actions:
-            print("Setting option flags", end=' ')
+        if "option-flags" in actions:
+            print("Setting option flags", end=" ")
             sys.stdout.flush()
             mt.SetOptionFlags(*flag_tuple)
             print(" Ok")  # should we test that it was actually ok?
-        if 'icc-command' in actions:
+        if "icc-command" in actions:
             icc_command_names = {
-                    0: 'start representative motion',
-                    1: 'stop representative motion',
-                    2: 'store ICC results',
-                    3: 'representative motion state'}
-            print("Sending ICC command 0x%02X (%s):" % (
-                    icc_command, icc_command_names[icc_command]), end=' ')
+                0: "start representative motion",
+                1: "stop representative motion",
+                2: "store ICC results",
+                3: "representative motion state",
+            }
+            print(
+                "Sending ICC command 0x%02X (%s):"
+                % (icc_command, icc_command_names[icc_command]),
+                end=" ",
+            )
             sys.stdout.flush()
             res = mt.IccCommand(icc_command)
             if icc_command == 0x00:
@@ -547,28 +590,33 @@ def main():
             elif icc_command == 0x02:
                 print(" Ok")  # should we test that it was actually ok?
             elif icc_command == 0x03:
-                res_string = {0: 'representative motion inactive',
-                              1: 'representation motion active'}
-                print("0x02X (%s)" % (res, res_string.get(res, 'unknown')))
-        if 'legacy-configure' in actions:
+                res_string = {
+                    0: "representative motion inactive",
+                    1: "representation motion active",
+                }
+                print("0x02X (%s)" % (res, res_string.get(res, "unknown")))
+        if "legacy-configure" in actions:
             if mode is None:
-                print("output-mode is require to configure the device in "
-                    "legacy mode.")
+                print(
+                    "output-mode is require to configure the device in " "legacy mode."
+                )
                 return 1
             if settings is None:
-                print("output-settings is required to configure the device "
-                      "in legacy mode.")
+                print(
+                    "output-settings is required to configure the device "
+                    "in legacy mode."
+                )
                 return 1
-            print("Configuring in legacy mode", end=' ')
+            print("Configuring in legacy mode", end=" ")
             sys.stdout.flush()
             mt.configure_legacy(mode, settings, period, skipfactor)
-            print(" Ok")        # should we test it was actually ok?
-        if 'xkf-scenario' in actions:
-            print("Changing XKF scenario", end=' ')
+            print(" Ok")  # should we test it was actually ok?
+        if "xkf-scenario" in actions:
+            print("Changing XKF scenario", end=" ")
             sys.stdout.flush()
             mt.SetCurrentScenario(new_xkf)
             print("Ok")
-        if 'echo' in actions:
+        if "echo" in actions:
             # if (mode is None) or (settings is None):
             #     mode, settings, length = mt.auto_config()
             #     print mode, settings, length
@@ -585,41 +633,46 @@ def main():
 
 def inspect(mt, device, baudrate):
     """Inspection."""
+
     def config_fmt(config):
         """Hexadecimal configuration."""
-        return '[%s]' % ', '.join('(0x%04X, %d)' % (mode, freq)
-                                  for (mode, freq) in config)
+        return "[%s]" % ", ".join(
+            "(0x%04X, %d)" % (mode, freq) for (mode, freq) in config
+        )
 
     def hex_fmt(size=4):
         """Factory for hexadecimal representation formatter."""
-        fmt = '0x%%0%dX' % (2*size)
+        fmt = "0x%%0%dX" % (2 * size)
 
         def f(value):
             """Hexadecimal representation."""
             # length of string is twice the size of the value (in bytes)
             return fmt % value
+
         return f
 
     def sync_fmt(settings):
         """Synchronization settings: N*12 bytes"""
-        return '[%s]' % ', '.join('(0x%02X, 0x%02X, 0x%02X, 0x%02X,'
-                                  ' 0x%04X, 0x%04X, 0x%04X, 0x%04X)' % s
-                                  for s in settings)
+        return "[%s]" % ", ".join(
+            "(0x%02X, 0x%02X, 0x%02X, 0x%02X," " 0x%04X, 0x%04X, 0x%04X, 0x%04X)" % s
+            for s in settings
+        )
 
     def try_message(m, f, formater=None, *args, **kwargs):
-        print('  %s ' % m, end=' ')
+        print("  %s " % m, end=" ")
         try:
             if formater is not None:
                 print(formater(f(*args, **kwargs)))
             else:
                 pprint.pprint(f(*args, **kwargs), indent=4)
         except MTTimeoutException as e:
-            print('timeout: might be unsupported by your device.')
+            print("timeout: might be unsupported by your device.")
         except MTErrorMessage as e:
             if e.code == 0x04:
-                print('message unsupported by your device.')
+                print("message unsupported by your device.")
             else:
                 raise e
+
     print("Device: %s at %d Bd:" % (device, baudrate))
     try_message("device ID:", mt.GetDeviceID, hex_fmt(4))
     try_message("product code:", mt.GetProductCode)
@@ -632,14 +685,13 @@ def inspect(mt, device, baudrate):
     try_message("transmit delay:", mt.GetTransmitDelay)
     try_message("synchronization settings:", mt.GetSyncSettings, sync_fmt)
     try_message("general configuration:", mt.GetConfiguration)
-    try_message("output configuration (mark IV devices):",
-                mt.GetOutputConfiguration, config_fmt)
+    try_message(
+        "output configuration (mark IV devices):", mt.GetOutputConfiguration, config_fmt
+    )
     try_message("string output type:", mt.GetStringOutputType)
     try_message("period:", mt.GetPeriod)
-    try_message("alignment rotation sensor:", mt.GetAlignmentRotation,
-                parameter=0)
-    try_message("alignment rotation local:", mt.GetAlignmentRotation,
-                parameter=1)
+    try_message("alignment rotation sensor:", mt.GetAlignmentRotation, parameter=0)
+    try_message("alignment rotation local:", mt.GetAlignmentRotation, parameter=1)
     try_message("output mode:", mt.GetOutputMode, hex_fmt(2))
     try_message("extended output mode:", mt.GetExtOutputMode, hex_fmt(2))
     try_message("output settings:", mt.GetOutputSettings, hex_fmt(4))
@@ -654,46 +706,46 @@ def get_output_config(config_arg):
     """Parse the mark IV output configuration argument."""
     # code and max frequency
     code_dict = {
-        'tt': (0x0810, 1),
-        'iu': (0x1010, 2000),
-        'ip': (0x1020, 2000),
-        'ii': (0x1030, 2000),
-        'if': (0x1060, 2000),
-        'ic': (0x1070, 2000),
-        'ir': (0x1080, 2000),
-        'oq': (0x2010, 400),
-        'om': (0x2020, 400),
-        'oe': (0x2030, 400),
-        'bp': (0x3010, 50),
-        'ad': (0x4010, 2000),
-        'aa': (0x4020, 2000),
-        'af': (0x4030, 2000),
-        'ah': (0x4040, 1000),
-        'pa': (0x5020, 400),
-        'pp': (0x5030, 400),
-        'pl': (0x5040, 400),
-        'np': (0x7010, 4),
-        'ns': (0x7020, 4),
-        'wr': (0x8020, 2000),
-        'wd': (0x8030, 2000),
-        'wh': (0x8040, 1000),
-        'gd': (0x8830, 4),
-        'gs': (0x8840, 4),
-        'gu': (0x8880, 4),
-        'gi': (0x88A0, 4),
-        'rr': (0xA010, 2000),
-        'rt': (0xA020, 2000),
-        'mf': (0xC020, 100),
-        'vv': (0xD010, 400),
-        'sb': (0xE010, 2000),
-        'sw': (0xE020, 2000)
+        "tt": (0x0810, 1),
+        "iu": (0x1010, 2000),
+        "ip": (0x1020, 2000),
+        "ii": (0x1030, 2000),
+        "if": (0x1060, 2000),
+        "ic": (0x1070, 2000),
+        "ir": (0x1080, 2000),
+        "oq": (0x2010, 400),
+        "om": (0x2020, 400),
+        "oe": (0x2030, 400),
+        "bp": (0x3010, 50),
+        "ad": (0x4010, 2000),
+        "aa": (0x4020, 2000),
+        "af": (0x4030, 2000),
+        "ah": (0x4040, 1000),
+        "pa": (0x5020, 400),
+        "pp": (0x5030, 400),
+        "pl": (0x5040, 400),
+        "np": (0x7010, 4),
+        "ns": (0x7020, 4),
+        "wr": (0x8020, 2000),
+        "wd": (0x8030, 2000),
+        "wh": (0x8040, 1000),
+        "gd": (0x8830, 4),
+        "gs": (0x8840, 4),
+        "gu": (0x8880, 4),
+        "gi": (0x88A0, 4),
+        "rr": (0xA010, 2000),
+        "rt": (0xA020, 2000),
+        "mf": (0xC020, 100),
+        "vv": (0xD010, 400),
+        "sb": (0xE010, 2000),
+        "sw": (0xE020, 2000),
     }
     # format flags
-    format_dict = {'f': 0x00, 'd': 0x03, 'e': 0x00, 'n': 0x04, 'w': 0x08}
-    config_re = re.compile('([a-z]{2})(\d+)?([fdenw])?([fdnew])?')
+    format_dict = {"f": 0x00, "d": 0x03, "e": 0x00, "n": 0x04, "w": 0x08}
+    config_re = re.compile("([a-z]{2})(\d+)?([fdenw])?([fdnew])?")
     output_configuration = []
     try:
-        for item in config_arg.split(','):
+        for item in config_arg.split(","):
             group, frequency, fmt1, fmt2 = config_re.findall(item.lower())[0]
             code, max_freq = code_dict[group]
             if fmt1 in format_dict:
@@ -718,7 +770,7 @@ def get_mode(arg):
         return mode
     except ValueError:
         pass
-    if arg[0] == '0':
+    if arg[0] == "0":
         try:  # binary
             mode = int(arg, 2)
             return mode
@@ -732,23 +784,23 @@ def get_mode(arg):
     # string mode specification
     mode = 0
     for c in arg:
-        if c == 't':
+        if c == "t":
             mode |= OutputMode.Temp
-        elif c == 'c':
+        elif c == "c":
             mode |= OutputMode.Calib
-        elif c == 'o':
+        elif c == "o":
             mode |= OutputMode.Orient
-        elif c == 'a':
+        elif c == "a":
             mode |= OutputMode.Auxiliary
-        elif c == 'p':
+        elif c == "p":
             mode |= OutputMode.Position
-        elif c == 'v':
+        elif c == "v":
             mode |= OutputMode.Velocity
-        elif c == 's':
+        elif c == "s":
             mode |= OutputMode.Status
-        elif c == 'g':
+        elif c == "g":
             mode |= OutputMode.RAWGPS
-        elif c == 'r':
+        elif c == "r":
             mode |= OutputMode.RAW
         else:
             print("Unknown output-mode specifier: '%s'" % c)
@@ -763,7 +815,7 @@ def get_settings(arg):
         return settings
     except ValueError:
         pass
-    if arg[0] == '0':
+    if arg[0] == "0":
         try:  # binary
             settings = int(arg, 2)
             return settings
@@ -780,29 +832,29 @@ def get_settings(arg):
     calib_mode = OutputSettings.CalibMode_Mask
     NED = 0
     for c in arg:
-        if c == 't':
+        if c == "t":
             timestamp = OutputSettings.Timestamp_SampleCnt
-        elif c == 'n':
+        elif c == "n":
             timestamp = OutputSettings.Timestamp_None
-        elif c == 'u':
+        elif c == "u":
             timestamp |= OutputSettings.Timestamp_UTCTime
-        elif c == 'q':
+        elif c == "q":
             orient_mode = OutputSettings.OrientMode_Quaternion
-        elif c == 'e':
+        elif c == "e":
             orient_mode = OutputSettings.OrientMode_Euler
-        elif c == 'm':
+        elif c == "m":
             orient_mode = OutputSettings.OrientMode_Matrix
-        elif c == 'A':
+        elif c == "A":
             calib_mode &= OutputSettings.CalibMode_Acc
-        elif c == 'G':
+        elif c == "G":
             calib_mode &= OutputSettings.CalibMode_Gyr
-        elif c == 'M':
+        elif c == "M":
             calib_mode &= OutputSettings.CalibMode_Mag
-        elif c == 'i':
+        elif c == "i":
             calib_mode &= OutputSettings.AuxiliaryMode_NoAIN2
-        elif c == 'j':
+        elif c == "j":
             calib_mode &= OutputSettings.AuxiliaryMode_NoAIN1
-        elif c == 'N':
+        elif c == "N":
             NED = OutputSettings.Coordinates_NED
         else:
             print("Unknown output-settings specifier: '%s'" % c)
@@ -818,7 +870,7 @@ def get_synchronization_settings(arg):
         return sync_settings
     else:
         # Parse each field from the argument
-        sync_settings = arg.split(',')
+        sync_settings = arg.split(",")
         try:
             # convert string to int
             sync_settings = tuple([int(i) for i in sync_settings])
@@ -826,10 +878,12 @@ def get_synchronization_settings(arg):
             print("Synchronization sync_settings must be integers.")
             return
         # check synchronization sync_settings
-        if sync_settings[0] in (3, 4, 8, 9, 11) and \
-                sync_settings[1] in (0, 1, 2, 4, 5, 6) and \
-                sync_settings[2] in (1, 2, 3) and \
-                sync_settings[3] in (0, 1):
+        if (
+            sync_settings[0] in (3, 4, 8, 9, 11)
+            and sync_settings[1] in (0, 1, 2, 4, 5, 6)
+            and sync_settings[2] in (1, 2, 3)
+            and sync_settings[3] in (0, 1)
+        ):
             return sync_settings
         else:
             print("Invalid synchronization settings.")
@@ -849,12 +903,12 @@ def get_UTCtime(arg):
         time_settings.append(timestamp.hour)
         time_settings.append(timestamp.minute)
         time_settings.append(timestamp.second)
-        time_settings.append(timestamp.microsecond*1000)  # *1000 to get ns
+        time_settings.append(timestamp.microsecond * 1000)  # *1000 to get ns
         time_settings.append(0)  # default flag to 0
         return time_settings
     else:
         # Parse each field from the argument
-        time_settings = arg.split(',')
+        time_settings = arg.split(",")
         try:
             time_settings = [int(i) for i in time_settings]
         except ValueError:
@@ -862,13 +916,15 @@ def get_UTCtime(arg):
             return
 
         # check UTCtime settings
-        if 1999 <= time_settings[0] <= 2099 and \
-                1 <= time_settings[1] <= 12 and \
-                1 <= time_settings[2] <= 31 and \
-                0 <= time_settings[3] <= 23 and \
-                0 <= time_settings[4] <= 59 and \
-                0 <= time_settings[5] <= 59 and \
-                0 <= time_settings[6] <= 1000000000:
+        if (
+            1999 <= time_settings[0] <= 2099
+            and 1 <= time_settings[1] <= 12
+            and 1 <= time_settings[2] <= 31
+            and 0 <= time_settings[3] <= 23
+            and 0 <= time_settings[4] <= 59
+            and 0 <= time_settings[5] <= 59
+            and 0 <= time_settings[6] <= 1000000000
+        ):
             return time_settings
         else:
             print("Invalid UTCtime settings.")
@@ -892,12 +948,10 @@ def get_gnss_platform(arg):
 def get_option_flags(arg):
     """Parse and check command line option flags argument."""
     try:
-        set_flag, clear_flag = map(lambda s: int(s.strip(), base=0),
-                                   arg.split(','))
+        set_flag, clear_flag = map(lambda s: int(s.strip(), base=0), arg.split(","))
         return (set_flag, clear_flag)
     except ValueError:
-        print('incorrect option flags specification (expected a pair of '
-              'values)')
+        print("incorrect option flags specification (expected a pair of " "values)")
         return
 
 
@@ -913,5 +967,5 @@ def get_icc_command(arg):
         return
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

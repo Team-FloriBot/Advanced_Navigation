@@ -23,9 +23,11 @@ class RadarDataCollector:
         self.confidence_data.append(data.confidence)
 
     def run(self, duration, delay):
-        rospy.init_node('radar_data_collector', anonymous=True)
-        self.filtered_range_pub = rospy.Publisher('filtered_range_data', Range, queue_size=10)
-        rospy.Subscriber('decoded_radar_data', RadarData, self.scan_callback)
+        rospy.init_node("radar_data_collector", anonymous=True)
+        self.filtered_range_pub = rospy.Publisher(
+            "filtered_range_data", Range, queue_size=10
+        )
+        rospy.Subscriber("decoded_radar_data", RadarData, self.scan_callback)
 
         rospy.sleep(delay)  # Delay before starting data collection
 
@@ -39,18 +41,30 @@ class RadarDataCollector:
                 break
 
             # Only process data received after the delay
-            duration_mask = [(t >= current_time - rospy.Duration(delay)) for t in self.time_data]
+            duration_mask = [
+                (t >= current_time - rospy.Duration(delay)) for t in self.time_data
+            ]
             range_data = [r for i, r in enumerate(self.range_data) if duration_mask[i]]
 
             # Apply running median filter to range data
             filtered_range_data_running_median = np.copy(range_data)
             window_size = 3  # Adjust as needed
 
-            for i in range(window_size, len(filtered_range_data_running_median) - window_size):
+            for i in range(
+                window_size, len(filtered_range_data_running_median) - window_size
+            ):
                 if filtered_range_data_running_median[i] == 0:
-                    nonzero_indices = np.nonzero(filtered_range_data_running_median[i - window_size:i + window_size + 1])[0]
+                    nonzero_indices = np.nonzero(
+                        filtered_range_data_running_median[
+                            i - window_size : i + window_size + 1
+                        ]
+                    )[0]
                     if len(nonzero_indices) > 0:
-                        median_value = np.median(filtered_range_data_running_median[i - window_size:i + window_size + 1][nonzero_indices])
+                        median_value = np.median(
+                            filtered_range_data_running_median[
+                                i - window_size : i + window_size + 1
+                            ][nonzero_indices]
+                        )
                         filtered_range_data_running_median[i] = median_value
 
             # Publish the filtered range data
@@ -67,15 +81,13 @@ class RadarDataCollector:
         rospy.spin()
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Radar Data Collector')
-    parser.add_argument('--duration', type=float, default=20, help='Duration in seconds')
-    parser.add_argument('--delay', type=float, default=5, help='Delay in seconds')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Radar Data Collector")
+    parser.add_argument(
+        "--duration", type=float, default=20, help="Duration in seconds"
+    )
+    parser.add_argument("--delay", type=float, default=5, help="Delay in seconds")
     args = parser.parse_args()
 
     collector = RadarDataCollector()
     collector.run(args.duration, args.delay)
-
-
-
-

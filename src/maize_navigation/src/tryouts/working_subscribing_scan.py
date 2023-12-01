@@ -2,18 +2,20 @@
 
 import rospy
 import numpy as np
-from sensor_msgs.msg import LaserScan 
-#from nav_msgs.msg import Odometry
+from sensor_msgs.msg import LaserScan
+
+# from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist, Point32
+
 
 class FieldRobotNavigator:
     def __init__(self):
-        rospy.init_node('field_robot_navigator')
+        rospy.init_node("field_robot_navigator")
 
         # Set up subscribers and publishers
-        rospy.Subscriber('laser_scanner_front', LaserScan, self.scan_callback)
-        #rospy.Subscriber('/odom', Odometry, self.odom_callback)
-        self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+        rospy.Subscriber("laser_scanner_front", LaserScan, self.scan_callback)
+        # rospy.Subscriber('/odom', Odometry, self.odom_callback)
+        self.cmd_vel_pub = rospy.Publisher("/cmd_vel", Twist, queue_size=1)
 
         # Initialize member variables
         self.robot_pose = None
@@ -22,9 +24,8 @@ class FieldRobotNavigator:
         self.angle_min = None
         self.angle_max = None
 
-
     def scan_callback(self, msg):
-        #self.scan_data = msg.ranges
+        # self.scan_data = msg.ranges
         self.scan_data = np.array(msg.ranges)
         self.angle_increment = msg.angle_increment
         self.angle_min = msg.angle_min
@@ -38,14 +39,18 @@ class FieldRobotNavigator:
                 rate.sleep()
                 continue
 
-            x_min = rospy.get_param('x_min')
-            x_max = rospy.get_param('x_max')
-            y_min = rospy.get_param('y_min')
-            y_max = rospy.get_param('y_max')
+            x_min = rospy.get_param("x_min")
+            x_max = rospy.get_param("x_max")
+            y_min = rospy.get_param("y_min")
+            y_max = rospy.get_param("y_max")
 
             # Convert the laser scan data from polar coordinates to Cartesian coordinates
             mask = np.logical_and(self.scan_data > y_min, self.scan_data < 10)
-            angles = np.arange(self.angle_min, self.angle_max + self.angle_increment, self.angle_increment)
+            angles = np.arange(
+                self.angle_min,
+                self.angle_max + self.angle_increment,
+                self.angle_increment,
+            )
             valid_angles = angles[mask]
             valid_ranges = self.scan_data[mask]
             scan_x = valid_ranges * np.cos(valid_angles)
@@ -57,15 +62,18 @@ class FieldRobotNavigator:
                 point = Point32()
                 point.x = scan_x[i]
                 point.y = scan_y[i]
-                point.z = 0.0 # set the z value to 0, assuming a 2D plane
+                point.z = 0.0  # set the z value to 0, assuming a 2D plane
                 points_list.append(point)
 
-
             # Calculate the average distance to the robot on both sides within x and y limits
-            mask = np.logical_and(np.abs(scan_y) < y_max, np.logical_and(scan_x > x_min, scan_x < x_max))
+            mask = np.logical_and(
+                np.abs(scan_y) < y_max, np.logical_and(scan_x > x_min, scan_x < x_max)
+            )
             left_y = scan_y[mask & (scan_y < 0)]
             right_y = scan_y[mask & (scan_y >= 0)]
-            left_dist = np.mean(np.abs(left_y)) if len(left_y) > 0 else np.inf #left is negative usually
+            left_dist = (
+                np.mean(np.abs(left_y)) if len(left_y) > 0 else np.inf
+            )  # left is negative usually
             right_dist = np.mean(np.abs(right_y)) if len(right_y) > 0 else np.inf
 
             if np.isinf(left_dist) or np.isinf(right_dist):
@@ -79,13 +87,14 @@ class FieldRobotNavigator:
 
                 # Adjust the angular velocity to center the robot between the rows
                 cmd_vel = Twist()
-                cmd_vel.angular.z = -2.5*center_dist
+                cmd_vel.angular.z = -2.5 * center_dist
                 cmd_vel.linear.x = 0.1
                 rospy.loginfo("Publishing to cmd_vel: %s", cmd_vel)
 
             self.cmd_vel_pub.publish(cmd_vel)
             rate.sleep()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     navigator = FieldRobotNavigator()
     navigator.navigate()

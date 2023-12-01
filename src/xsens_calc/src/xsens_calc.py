@@ -4,16 +4,15 @@ from geometry_msgs.msg import QuaternionStamped
 from std_msgs.msg import Float64
 import tf.transformations
 
+
 def quaternion_to_euler(quaternion):
     """
     Converts a quaternion to Euler angles (roll, pitch, yaw).
     """
-    return tf.transformations.euler_from_quaternion([
-        quaternion.x,
-        quaternion.y,
-        quaternion.z,
-        quaternion.w
-    ])
+    return tf.transformations.euler_from_quaternion(
+        [quaternion.x, quaternion.y, quaternion.z, quaternion.w]
+    )
+
 
 def callback(data):
     """
@@ -34,8 +33,9 @@ def callback(data):
     pub.publish(z_orientation)
     rospy.loginfo("Published z-axis orientation (yaw angle): %f", z_orientation)
 
-if __name__ == '__main__':
-    rospy.init_node('quaternion_to_euler_node', anonymous=True)
+
+if __name__ == "__main__":
+    rospy.init_node("quaternion_to_euler_node", anonymous=True)
 
     # Subscriber to the 'filter/quaternion' topic
     rospy.Subscriber("filter/quaternion", QuaternionStamped, callback)

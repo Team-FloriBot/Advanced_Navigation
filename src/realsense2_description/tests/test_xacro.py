@@ -5,13 +5,14 @@ import subprocess
 import os
 
 r = rospkg.RosPack()
-path = r.get_path('realsense2_description')
+path = r.get_path("realsense2_description")
 
 
 def run_xacro_in_file(filename):
-    assert(filename != "")
-    assert(subprocess.check_output(["xacro", "--inorder", "tests/{}".format(filename)],
-                                   cwd=path))
+    assert filename != ""
+    assert subprocess.check_output(
+        ["xacro", "--inorder", "tests/{}".format(filename)], cwd=path
+    )
 
 
 def test_files():

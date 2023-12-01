@@ -20,12 +20,9 @@ def range_callback(data):
         filtered_range_pub.publish(last_valid_range)
 
 
-if __name__ == '__main__':
-    rospy.init_node('range_filter', anonymous=True)
-    rospy.Subscriber('decoded_radar_data', RadarData, range_callback)
-    filtered_range_pub = rospy.Publisher('filtered_data', RadarData, queue_size=10)
+if __name__ == "__main__":
+    rospy.init_node("range_filter", anonymous=True)
+    rospy.Subscriber("decoded_radar_data", RadarData, range_callback)
+    filtered_range_pub = rospy.Publisher("filtered_data", RadarData, queue_size=10)
 
     rospy.spin()
-
-
-

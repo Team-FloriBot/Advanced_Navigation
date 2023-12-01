@@ -3,6 +3,7 @@
 
 class DeviceState:
     """State of the device"""
+
     # measurement state
     Measurement = 0
     # config state
@@ -11,6 +12,7 @@ class DeviceState:
 
 class MID:
     """Values for the message id (MID)"""
+
     # State MID
     # Wake up procedure
     WakeUp = 0x3E
@@ -125,6 +127,7 @@ class MID:
 
 class DeprecatedMID:
     """Deprecated message Ids."""
+
     # Informational messages
     # Compatibility for XBus Master users
     InitMT = 0x02
@@ -164,47 +167,49 @@ class DeprecatedMID:
 
 
 def getName(cls, value):
-    '''Return the name of the first found member of class cls with given
-    value.'''
+    """Return the name of the first found member of class cls with given
+    value."""
     for k, v in cls.__dict__.items():
         if v == value:
             return k
-    return ''
+    return ""
 
 
 def getMIDName(mid):
-    '''Return the name of a message given the message id.'''
+    """Return the name of a message given the message id."""
     name = getName(MID, mid)
     if name:
         return name
     if mid & 1:
-        name = getName(MID, mid-1)
+        name = getName(MID, mid - 1)
         if name:
-            return name+'Ack'
-    return 'unknown MID'
+            return name + "Ack"
+    return "unknown MID"
 
 
 class Baudrates(object):
     """Baudrate information and conversion."""
+
     # Baudrate mapping between ID and value
     Baudrates = [
         (0x0D, 4000000),
         (0x0D, 3686400),
         (0x0C, 2000000),
-        (0x80,  921600),
-        (0x0A,  921600),
-        (0x00,  460800),
-        (0x01,  230400),
-        (0x02,  115200),
-        (0x03,   76800),
-        (0x04,   57600),
-        (0x05,   38400),
-        (0x06,   28800),
-        (0x07,   19200),
-        (0x08,   14400),
-        (0x09,    9600),
-        (0x0B,    4800),
-        (0x80,  921600)]
+        (0x80, 921600),
+        (0x0A, 921600),
+        (0x00, 460800),
+        (0x01, 230400),
+        (0x02, 115200),
+        (0x03, 76800),
+        (0x04, 57600),
+        (0x05, 38400),
+        (0x06, 28800),
+        (0x07, 19200),
+        (0x08, 14400),
+        (0x09, 9600),
+        (0x0B, 4800),
+        (0x80, 921600),
+    ]
 
     @classmethod
     def get_BRID(cls, baudrate):
@@ -225,6 +230,7 @@ class Baudrates(object):
 
 class OutputMode:
     """Values for the output mode."""
+
     Temp = 0x0001
     Calib = 0x0002
     Orient = 0x0004
@@ -238,6 +244,7 @@ class OutputMode:
 
 class OutputSettings:
     """Values for the output settings."""
+
     Timestamp_None = 0x00000000
     Timestamp_SampleCnt = 0x00000001
     Timestamp_UTCTime = 0x00000002
@@ -265,6 +272,7 @@ class OutputSettings:
 
 class XDIGroup:
     """Values for the XDI groups."""
+
     Temperature = 0x0800
     Timestamp = 0x1000
     OrientationData = 0x2000
@@ -294,7 +302,7 @@ class MTTimeoutException(MTException):
         self.message = message
 
     def __str__(self):
-        return 'Timeout: %s' % self.message
+        return "Timeout: %s" % self.message
 
 
 class MTErrorMessage(MTException):
@@ -310,10 +318,10 @@ class MTErrorMessage(MTException):
         20: "No reply to SetBID message during SetBID procedure",
         21: "Other than SetBIDAck received",
         24: "Timer overflow - period too short to collect all data from "
-            "Motion Trackers",
+        "Motion Trackers",
         25: "Motion Tracker responds with other than SlaveData message",
         26: "Total bytes of data of Motion Trackers including sample counter "
-            "exceeds 255 bytes",
+        "exceeds 255 bytes",
         27: "Timer overflows during measurement",
         28: "Timer overflows during measurement",
         29: "No correct response from Motion Tracker during measurement",
@@ -325,20 +333,17 @@ class MTErrorMessage(MTException):
         37: "Wireless subsystem failed",
         40: "The device generated an error, try updating the firmware",
         41: "The device generates more data than the bus communication can "
-            "handle (baud rate may be too low)",
-        42: "The sample buffer of the device was full during a communication "
-            "outage",
+        "handle (baud rate may be too low)",
+        42: "The sample buffer of the device was full during a communication " "outage",
         43: "The external trigger is not behaving as configured",
-        44: "The sample stream detected an error in the ordering of sample "
-            "data",
+        44: "The sample stream detected an error in the ordering of sample " "data",
         45: "A dip in the power supply was detected and recovered from",
         46: "A current limiter has been activated, shutting down the device",
         47: "Device temperature is not within operational limits",
         48: "Battery level reached lower limit",
         49: "Specified filter profile ID is not available on the device or "
-            "the user is trying to duplicate an existing filter profile type",
-        50: "The settings stored in the device's non volatile memory are "
-            "invalid",
+        "the user is trying to duplicate an existing filter profile type",
+        50: "The settings stored in the device's non volatile memory are " "invalid",
         51: "Request for control of the device was denied",
         256: "A generic error occurred",
         257: "Operation not implemented in this version (yet)",
@@ -347,8 +352,7 @@ class MTErrorMessage(MTException):
         260: "Checksum fault occurred",
         261: "No internal memory available",
         262: "The requested item was not found",
-        263: "Unexpected message received (e.g. no acknowledge message "
-             "received)",
+        263: "Unexpected message received (e.g. no acknowledge message " "received)",
         264: "Invalid id supplied",
         265: "Operation is invalid at this point",
         266: "Insufficient buffer space available",
@@ -356,8 +360,7 @@ class MTErrorMessage(MTException):
         268: "The specified i/o device can not be opened",
         269: "An I/O device is already opened with this object",
         270: "End of file is reached",
-        271: "A required settings file could not be opened or is missing some "
-             "data",
+        271: "A required settings file could not be opened or is missing some " "data",
         272: "No data is available",
         273: "Tried to change a read-only value",
         274: "Tried to supply a NULL value where it is not allowed",
@@ -386,16 +389,14 @@ class MTErrorMessage(MTException):
         297: "A device was detected that was neither master nor slave",
         298: "No master detected",
         299: "A device is not sending enough data",
-        300: "The version of the object is too low for the requested "
-             "operation",
+        300: "The version of the object is too low for the requested " "operation",
         301: "The object has an unrecognised version, so it's not safe to "
-             "perform the operation",
+        "perform the operation",
         302: "The process was aborted by an external event, usually a user "
-             "action or process termination",
+        "action or process termination",
         303: "The requested functionality is not supported by the device",
         304: "A packet counter value was missed",
-        305: "An error occurred while trying to put the device in measurement "
-             "mode",
+        305: "An error occurred while trying to put the device in measurement " "mode",
         306: "A device could not start recording",
         311: "Radio channel is in use by another system",
         312: "Motion tracker disconnected unexpectedly",
@@ -404,13 +405,12 @@ class MTErrorMessage(MTException):
         315: "Device has gone out of range",
         316: "Device is back in range, resuming normal operation",
         317: "The device was disconnected",
-        400: "The device is shutting down "
+        400: "The device is shutting down ",
     }
 
     def __init__(self, code):
         self.code = code
-        self.message = self.ErrorCodes.get(code,
-                                           'Unknown error: 0x%02X' % code)
+        self.message = self.ErrorCodes.get(code, "Unknown error: 0x%02X" % code)
 
     def __str__(self):
-        return 'Error message 0x%02X: %s' % (self.code, self.message)
+        return "Error message 0x%02X: %s" % (self.code, self.message)
