@@ -342,10 +342,10 @@ class FieldRobotNavigator:
                 )  # or set to some other default value
 
             if (
-                (min_left_x is not None and 0 < min_left_x)
-                or (min_right_x is not None and 0 < min_right_x)
-                or (max_left_x is not None and poly_min_dist_req > max_left_x)
-                or (max_right_x is not None and poly_min_dist_req > max_right_x)
+                ((min_left_x is not None and 0.05 < min_left_x)
+                and (min_right_x is not None and 0.05 < min_right_x))
+                or ((max_left_x is not None and poly_min_dist_req > max_left_x)
+                and (max_right_x is not None and poly_min_dist_req > max_right_x))
             ):
                 rospy.loginfo("AVG Control!")
                 left_dist = (
@@ -365,7 +365,7 @@ class FieldRobotNavigator:
                     np.polyfit(right_x, right_y, 3) if len(right_points) >= 6 else None
                 )
 
-                if left_poly_coeffs is not None:
+                if left_poly_coeffs is not None and 0.05 > min_left_x:
                     # Calculating the distance to the left at x=0 using the polynomial equation
                     left_dist = np.polyval(left_poly_coeffs, validation_x)
                     self.publish_poly_marker(left_poly_coeffs, "left_poly", -0.3, 1.5)
@@ -379,7 +379,7 @@ class FieldRobotNavigator:
                         else np.inf
                     )
 
-                if right_poly_coeffs is not None:
+                if right_poly_coeffs is not None and 0.05 > min_right_x:
                     # Calculating the distance to the right at x=0 using the polynomial equation
                     right_dist = np.polyval(right_poly_coeffs, validation_x)
                     self.publish_poly_marker(right_poly_coeffs, "right_poly", -0.3, 1.5)
