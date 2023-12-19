@@ -327,11 +327,19 @@ class FieldRobotNavigator:
             right_y = np.array([p.y for p in right_points])
 
             # Calculate min and max values of both sides individually
-            min_left_x = np.min(left_x) if len(left_x) > self.needed_points_for_fit else None
-            max_left_x = np.max(left_x) if len(left_x) > self.needed_points_for_fit else None
+            min_left_x = (
+                np.min(left_x) if len(left_x) > self.needed_points_for_fit else None
+            )
+            max_left_x = (
+                np.max(left_x) if len(left_x) > self.needed_points_for_fit else None
+            )
 
-            min_right_x = np.min(right_x) if len(right_x) > self.needed_points_for_fit else None
-            max_right_x = np.max(right_x) if len(right_x) > self.needed_points_for_fit else None
+            min_right_x = (
+                np.min(right_x) if len(right_x) > self.needed_points_for_fit else None
+            )
+            max_right_x = (
+                np.max(right_x) if len(right_x) > self.needed_points_for_fit else None
+            )
 
             # Calculate min_both and max_both using min/max with list filtering
             min_both = min(filter(None, [min_left_x, min_right_x]), default=None)
@@ -339,9 +347,11 @@ class FieldRobotNavigator:
 
             # Conditional logic
             # Use AVG Control if both sides have no too few points, too short polynomials, or too far away polynomials
-            if min_both is None or self.polydist_to_robot < min_both or \
-               (max_both is not None and self.poly_min_dist_req > max_both):
-
+            if (
+                min_both is None
+                or self.polydist_to_robot < min_both
+                or (max_both is not None and self.poly_min_dist_req > max_both)
+            ):
                 rospy.loginfo("AVG Control!")
                 left_dist = (
                     np.mean(left_y) if len(left_y) >= 2 else np.inf
@@ -383,7 +393,7 @@ class FieldRobotNavigator:
                         if right_poly_coeffs is not None
                         else np.inf
                     )
-                #Conditions to check if Polyquality is enough
+                # Conditions to check if Polyquality is enough
                 if (
                     right_poly_coeffs is not None
                     and self.polydist_to_robot > min_right_x
@@ -421,7 +431,7 @@ class FieldRobotNavigator:
             self.center_dist.publish(center_dist)
             # Adjust the angular velocity to center the robot between the rows
             cmd_vel = Twist()
-            #Negative, because laser is mounted overhead
+            # Negative, because laser is mounted overhead
             cmd_vel.angular.z = -angular_correction
             # Limit the speed according to distance to row
             if np.abs(center_dist) > self.max_dist_in_row - 0.05:
