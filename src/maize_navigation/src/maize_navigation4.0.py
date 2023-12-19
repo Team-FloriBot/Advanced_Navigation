@@ -326,40 +326,28 @@ class FieldRobotNavigator:
             right_x = np.array([p.x for p in right_points])
             right_y = np.array([p.y for p in right_points])
 
-            # Initial assignments with list comprehensions
-            min_left_x = (
-                np.min(left_x) if len(left_x) > self.needed_points_for_fit else None
-            )
-            max_left_x = (
-                np.max(left_x) if len(left_x) > self.needed_points_for_fit else None
-            )
+            # Calculate min and max values of both sides individually
+            min_left_x = np.min(left_x) if len(left_x) > self.needed_points_for_fit else None
+            max_left_x = np.max(left_x) if len(left_x) > self.needed_points_for_fit else None
 
-            min_right_x = (
-                np.min(right_x) if len(right_x) > self.needed_points_for_fit else None
-            )
-            max_right_x = (
-                np.max(right_x) if len(right_x) > self.needed_points_for_fit else None
-            )
+            min_right_x = np.min(right_x) if len(right_x) > self.needed_points_for_fit else None
+            max_right_x = np.max(right_x) if len(right_x) > self.needed_points_for_fit else None
 
             # Calculate min_both and max_both using min/max with list filtering
-            min_both = min(
-                [x for x in [min_left_x, min_right_x] if x is not None], default=None
-            )
-            max_both = max(
-                [x for x in [max_left_x, max_right_x] if x is not None], default=None
-            )
+            min_both = min(filter(None, [min_left_x, min_right_x]), default=None)
+            max_both = max(filter(None, [max_left_x, max_right_x]), default=None)
 
             # Conditional logic
-            if (
-                (min_both is None)
-                or (min_both is not None and self.polydist_to_robot < min_both)
-            ) or (max_both is not None and self.poly_min_dist_req > max_both):
+            # Use AVG Control if both sides have no too few points, too short polynomials, or too far away polynomials
+            if min_both is None or self.polydist_to_robot < min_both or \
+               (max_both is not None and self.poly_min_dist_req > max_both):
 
                 rospy.loginfo("AVG Control!")
                 left_dist = (
                     np.mean(left_y) if len(left_y) >= 2 else np.inf
                 )  # left is negative usually
                 right_dist = np.mean(right_y) if len(right_y) >= 2 else np.inf
+                # One line mode
                 if np.isinf(left_dist):
                     left_dist = right_dist - self.row_width
                 if np.isinf(right_dist):
@@ -376,7 +364,7 @@ class FieldRobotNavigator:
                     if len(right_points) > self.needed_points_for_fit
                     else None
                 )
-
+                # Conditions to check if Polyquality is enough
                 if (
                     left_poly_coeffs is not None
                     and self.polydist_to_robot > min_left_x
@@ -395,7 +383,7 @@ class FieldRobotNavigator:
                         if right_poly_coeffs is not None
                         else np.inf
                     )
-
+                #Conditions to check if Polyquality is enough
                 if (
                     right_poly_coeffs is not None
                     and self.polydist_to_robot > min_right_x
@@ -426,12 +414,14 @@ class FieldRobotNavigator:
                     self.angle_pub.publish(angle_msg)"""
 
             center_dist = right_dist + left_dist
+            # Call of PID-Control
             angular_correction = self.pid_controller.compute(center_dist, cycle_time)
 
             rospy.loginfo("Distance to center: %f", center_dist)
             self.center_dist.publish(center_dist)
             # Adjust the angular velocity to center the robot between the rows
             cmd_vel = Twist()
+            #Negative, because laser is mounted overhead
             cmd_vel.angular.z = -angular_correction
             # Limit the speed according to distance to row
             if np.abs(center_dist) > self.max_dist_in_row - 0.05:
