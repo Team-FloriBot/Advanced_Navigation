@@ -40,7 +40,7 @@ class ClosestPairAngleCalculator:
                 msg, field_names=("x", "y", "z"), skip_nans=True
             )
         ]
-    
+
         # Use a max-heap (simulated with negative distances) to keep track of the closest 30 points
         # The heap stores tuples of (-distance, point)
         closest_points_heap = []
@@ -49,7 +49,7 @@ class ClosestPairAngleCalculator:
             heapq.heappush(closest_points_heap, (distance, point))
             if len(closest_points_heap) > 30:
                 heapq.heappop(closest_points_heap)
-    
+
         # Extract only the points from the heap and reverse the distance sign
         closest_points = [point for _, point in closest_points_heap]
 

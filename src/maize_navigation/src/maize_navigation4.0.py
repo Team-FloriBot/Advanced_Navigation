@@ -342,10 +342,11 @@ class FieldRobotNavigator:
                 )  # or set to some other default value
 
             if (
-                ((min_left_x is not None and 0.05 < min_left_x)
-                and (min_right_x is not None and 0.05 < min_right_x))
-                or ((max_left_x is not None and poly_min_dist_req > max_left_x)
-                and (max_right_x is not None and poly_min_dist_req > max_right_x))
+                (min_left_x is not None and 0.05 < min_left_x)
+                and (min_right_x is not None and 0.05 < min_right_x)
+            ) or (
+                (max_left_x is not None and poly_min_dist_req > max_left_x)
+                and (max_right_x is not None and poly_min_dist_req > max_right_x)
             ):
                 rospy.loginfo("AVG Control!")
                 left_dist = (
