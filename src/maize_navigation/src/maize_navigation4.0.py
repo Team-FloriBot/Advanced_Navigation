@@ -59,7 +59,10 @@ class FieldRobotNavigator:
 
         self.last_linear_speed = 0
         self.pid_controller = PID(kp=2.25, ki=0.01, kd=0.75, integral_limit=1.0)
-        # kp=4 still ok kp5 swinging
+        # Polyfit parameters
+        self.poly_min_dist_req = 0.3
+        self.polydist_to_robot = 0.05
+        self.needed_points_for_fit = 6
 
         self.last_cycle_time = rospy.Time.now()
 
@@ -108,7 +111,6 @@ class FieldRobotNavigator:
         self.teleop_cmd_vel = Twist()
         self.teleop_cmd_vel.linear.x = 0
         self.teleop_cmd_vel.angular.z = 0
-
         self.driven_row = 0
 
     def set_drive_params(self):
@@ -297,9 +299,8 @@ class FieldRobotNavigator:
         # Calculate validation_x using the last published linear speed
         validation_x = 5 * cycle_time * self.last_linear_speed
         self.last_linear_speed = 0
-        poly_min_dist_req = 0.3
 
-        if len(left_points) < 2 and len(right_points) < 2:
+        if len(left_points) < 3 and len(right_points) < 3:
             # Not enough data to calculate center
             rospy.loginfo("At least one side has no maize")
             rospy.loginfo("Reached the end of a row.")
@@ -325,34 +326,40 @@ class FieldRobotNavigator:
             right_x = np.array([p.x for p in right_points])
             right_y = np.array([p.y for p in right_points])
 
-            if len(left_x) > 0:
-                min_left_x, max_left_x = np.min(left_x), np.max(left_x)
-            else:
-                min_left_x, max_left_x = (
-                    None,
-                    None,
-                )  # or set to some other default value
+            # Initial assignments with list comprehensions
+            min_left_x = (
+                np.min(left_x) if len(left_x) > self.needed_points_for_fit else None
+            )
+            max_left_x = (
+                np.max(left_x) if len(left_x) > self.needed_points_for_fit else None
+            )
 
-            if len(right_x) > 0:
-                min_right_x, max_right_x = np.min(right_x), np.max(right_x)
-            else:
-                min_right_x, max_right_x = (
-                    None,
-                    None,
-                )  # or set to some other default value
+            min_right_x = (
+                np.min(right_x) if len(right_x) > self.needed_points_for_fit else None
+            )
+            max_right_x = (
+                np.max(right_x) if len(right_x) > self.needed_points_for_fit else None
+            )
 
+            # Calculate min_both and max_both using min/max with list filtering
+            min_both = min(
+                [x for x in [min_left_x, min_right_x] if x is not None], default=None
+            )
+            max_both = max(
+                [x for x in [max_left_x, max_right_x] if x is not None], default=None
+            )
+
+            # Conditional logic
             if (
-                (min_left_x is not None and 0.05 < min_left_x)
-                and (min_right_x is not None and 0.05 < min_right_x)
-            ) or (
-                (max_left_x is not None and poly_min_dist_req > max_left_x)
-                and (max_right_x is not None and poly_min_dist_req > max_right_x)
-            ):
+                (min_both is None)
+                or (min_both is not None and self.polydist_to_robot < min_both)
+            ) or (max_both is not None and self.poly_min_dist_req > max_both):
+
                 rospy.loginfo("AVG Control!")
                 left_dist = (
-                    np.mean(left_y) if len(left_y) > 1 else np.inf
+                    np.mean(left_y) if len(left_y) >= 2 else np.inf
                 )  # left is negative usually
-                right_dist = np.mean(right_y) if len(right_y) > 1 else np.inf
+                right_dist = np.mean(right_y) if len(right_y) >= 2 else np.inf
                 if np.isinf(left_dist):
                     left_dist = right_dist - self.row_width
                 if np.isinf(right_dist):
@@ -360,19 +367,28 @@ class FieldRobotNavigator:
             else:
                 # Fitting a polynomial of degree 3 to the points, if there are enough points
                 left_poly_coeffs = (
-                    np.polyfit(left_x, left_y, 3) if len(left_points) >= 6 else None
+                    np.polyfit(left_x, left_y, 3)
+                    if len(left_points) > self.needed_points_for_fit
+                    else None
                 )
                 right_poly_coeffs = (
-                    np.polyfit(right_x, right_y, 3) if len(right_points) >= 6 else None
+                    np.polyfit(right_x, right_y, 3)
+                    if len(right_points) > self.needed_points_for_fit
+                    else None
                 )
 
-                if left_poly_coeffs is not None and 0.05 > min_left_x:
+                if (
+                    left_poly_coeffs is not None
+                    and self.polydist_to_robot > min_left_x
+                    and self.poly_min_dist_req < max_left_x
+                ):
                     # Calculating the distance to the left at x=0 using the polynomial equation
                     left_dist = np.polyval(left_poly_coeffs, validation_x)
                     self.publish_poly_marker(left_poly_coeffs, "left_poly", -0.3, 1.5)
                     # left_derivative_poly = np.polyder(left_poly_coeffs)
                     # left_derivative_value = np.polyval(left_derivative_poly, validation_x)
                 else:
+                    # One Line Mode
                     # If not enough points on the left, use a default or previously calculated value
                     left_dist = (
                         np.polyval(right_poly_coeffs, validation_x) - self.row_width
@@ -380,13 +396,18 @@ class FieldRobotNavigator:
                         else np.inf
                     )
 
-                if right_poly_coeffs is not None and 0.05 > min_right_x:
+                if (
+                    right_poly_coeffs is not None
+                    and self.polydist_to_robot > min_right_x
+                    and self.poly_min_dist_req < max_right_x
+                ):
                     # Calculating the distance to the right at x=0 using the polynomial equation
                     right_dist = np.polyval(right_poly_coeffs, validation_x)
                     self.publish_poly_marker(right_poly_coeffs, "right_poly", -0.3, 1.5)
                     # right_derivative_poly = np.polyder(right_poly_coeffs)
                     # right_derivative_value = np.polyval(right_derivative_poly, validation_x)
                 else:
+                    # One Line Mode
                     # If not enough points on the right, use a default or previously calculated value
                     right_dist = (
                         self.row_width + np.polyval(left_poly_coeffs, validation_x)
@@ -411,16 +432,15 @@ class FieldRobotNavigator:
             self.center_dist.publish(center_dist)
             # Adjust the angular velocity to center the robot between the rows
             cmd_vel = Twist()
-            cmd_vel.angular.z = (
-                -angular_correction
-            )  # -center_dist*3*self.vel_linear_drive
-
+            cmd_vel.angular.z = -angular_correction
+            # Limit the speed according to distance to row
             if np.abs(center_dist) > self.max_dist_in_row - 0.05:
                 cmd_vel.linear.x = 0.1
                 if np.abs(center_dist) > self.max_dist_in_row:
                     cmd_vel.linear.x = 0
                     rospy.logwarn("Too close to row!!!")
             else:
+                # Norming the speed according to distance to row
                 cmd_vel.linear.x = (
                     self.vel_linear_drive
                     * (self.max_dist_in_row - np.abs(center_dist))
