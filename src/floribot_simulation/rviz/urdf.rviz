@@ -151,42 +151,10 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        axesFront:
-          Value: true
-        axesRear:
-          Value: true
-        base_link:
-          Value: true
-        frontLeft:
-          Value: true
-        frontRight:
-          Value: true
-        front_wagon:
-          Value: true
-        jointFront:
-          Value: true
-        jointRear:
-          Value: true
-        laserFront:
-          Value: true
-        laserFront_box:
-          Value: true
-        laserFront_mount_link:
-          Value: true
-        rearLeft:
-          Value: true
-        rearRight:
-          Value: true
-        rear_laser:
-          Value: true
-        rear_laser_mount_link:
-          Value: true
-        rear_wagon:
-          Value: true
       Marker Alpha: 1
       Marker Scale: 0.5
       Name: TF
@@ -194,33 +162,9 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        base_link:
-          axesFront:
-            frontLeft:
-              {}
-            frontRight:
-              {}
-            jointFront:
-              jointRear:
-                axesRear:
-                  rearLeft:
-                    {}
-                  rearRight:
-                    {}
-                  rear_laser_mount_link:
-                    rear_laser:
-                      {}
-                  rear_wagon:
-                    {}
-            laserFront_box:
-              {}
-            laserFront_mount_link:
-              laserFront:
-                {}
-          front_wagon:
-            {}
+        {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -396,7 +340,7 @@ Visualization Manager:
       Value: true
   Enabled: true
   Global Options:
-    Background Color: 255; 255; 255
+    Background Color: 48; 48; 48
     Default Light: true
     Fixed Frame: base_link
     Frame Rate: 30
@@ -422,7 +366,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 3.2568206787109375
+      Distance: 4.629891395568848
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -430,17 +374,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -0.1255757063627243
-        Y: -0.14529363811016083
-        Z: -0.078758604824543
+        X: -0.013840926811099052
+        Y: -0.03243466466665268
+        Z: -0.018829574808478355
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.709797203540802
+      Pitch: 0.7297971844673157
       Target Frame: <Fixed Frame>
-      Yaw: 3.7617604732513428
+      Yaw: 3.2417519092559814
     Saved: ~
 Window Geometry:
   Displays:
