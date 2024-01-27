@@ -26,6 +26,7 @@ class LaserScanToPointCloud:
         self.pub = rospy.Publisher(pointcloud_topic, PointCloud2, queue_size=10)
 
     def callback(self, data):
+        rospy.loginfo("Entered callback")
         # Convert the laser scan data to a point cloud
         cloud = self.lp.projectLaser(data)
 

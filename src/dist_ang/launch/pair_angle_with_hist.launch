@@ -1,6 +1,6 @@
 <?xml version='1.0'?>
 <launch>
    <master auto="start"/>
-  <node pkg="dist_ang" type="pair_angle.py" name="pair_angle">
+  <node pkg="dist_ang" type="pair_angle_with_hist.py" name="pair_angle">
    </node>
 </launch>

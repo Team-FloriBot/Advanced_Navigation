@@ -1,0 +1,15 @@
+<?xml version='1.0'?>
+<launch>
+   <master auto="start"/>
+   <node pkg="boxmerkmal" type="boxmerkmal_with_visu.py" name="boxmerkmal_front">
+      <param name="laserscan_topic" value="/sensors/scanFront"/>
+      <param name="angle_topic" value="/angle_boxmerkmal_front"/>
+      <!--param name="pointcloud_topic" value="/laser_scanner_front_cart"/-->
+   </node>
+
+   <!--node pkg="scan_tools" type="boxmerkmal.py" name="boxmerkmal_rear">
+      <param name="laserscan_topic" value="/sensors/scanRear"/>
+      <param name="angle_topic" value="/angle_boxmerkmal_rear"/>
+   </node-->
+</launch>
+
