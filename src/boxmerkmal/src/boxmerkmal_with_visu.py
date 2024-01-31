@@ -61,7 +61,7 @@ class AngleHistogramFromLaserScan:
         dy = y[self.k :] - y[: -self.k]
         dx[dx == 0] = 1e-10
 
-        angles = np.degrees(np.arctan2(dy, dx))
+        angles = np.degrees(np.arctan(dy / dx))
         return angles[np.isfinite(angles)]
 
     def process_and_publish_angles(self, angles):

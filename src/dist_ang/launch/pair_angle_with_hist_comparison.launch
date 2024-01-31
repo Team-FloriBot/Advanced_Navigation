@@ -1,0 +1,11 @@
+<?xml version='1.0'?>
+<launch>
+   <master auto="start"/>
+  <node pkg="dist_ang" type="pair_angle_with_hist.py" name="closest_pair_angle_hist">
+  <param name="angle_topic" value="/dist_angle_hist"/>
+   </node>
+   
+  <node pkg="dist_ang" type="pair_angle_for_comp.py" name="closest_pair_angle">
+  <param name="angle_topic" value="/dist_angle"/>
+   </node>
+</launch>

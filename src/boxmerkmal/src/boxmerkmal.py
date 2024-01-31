@@ -2,6 +2,7 @@
 
 import rospy
 import numpy as np
+import math
 
 # import matplotlib.pyplot as plt
 from sensor_msgs.msg import LaserScan
@@ -55,9 +56,9 @@ class AngleHistogramFromLaserScan:
     def calculate_angles(self, x, y):
         dx = x[self.k :] - x[: -self.k]
         dy = y[self.k :] - y[: -self.k]
-        dx[dx == 0] = 1e-10  # Avoid division by zero
-
-        angles = np.degrees(np.arctan2(dy, dx))
+        dx[dx == 0] = 1e-10
+        angle_rad = np.arctan(dy / dx)  # Use np.arctan2 for element-wise arctangent
+        angles = np.degrees(angle_rad)
         return angles[np.isfinite(angles)]  # Filter out NaN values
 
     def process_and_publish_angles(self, angles):
@@ -65,7 +66,7 @@ class AngleHistogramFromLaserScan:
             rospy.logwarn("No valid angles left after filtering.")
             return
 
-        bins = np.arange(-90, 100, 10)  # Define bins
+        bins = np.arange(-180, 190, 10)  # Define bins
         count, bins = np.histogram(angles, bins=bins)
         max_bin_index = np.argmax(count)
         avg_angle = np.mean(

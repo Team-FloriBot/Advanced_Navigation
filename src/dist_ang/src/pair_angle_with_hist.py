@@ -16,7 +16,9 @@ class ClosestPairAngleCalculator:
         self.min_distance = 0.4
         self.threshold = 0.16
         self.closest_pair_angle_pub = rospy.Publisher(
-            "/closest_pair_angle", Float32, queue_size=10
+            rospy.get_param("~angle_topic", "/closest_pair_angle_hist"),
+            Float32,
+            queue_size=10,
         )
         self.line_marker_pub = rospy.Publisher(
             "/line_visualization", Marker, queue_size=10

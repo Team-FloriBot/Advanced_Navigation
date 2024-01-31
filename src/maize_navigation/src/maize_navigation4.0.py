@@ -42,7 +42,7 @@ class FieldRobotNavigator:
         )
         rospy.Subscriber("/teleop/cmd_vel", Twist, self.teleop_cmd_vel_callback)
         rospy.Subscriber("/teleop/movement_sequence", Joy, self.pattern_callback)
-        rospy.Subscriber("/closest_pair_angle", Float32, self.angle_callback)
+        rospy.Subscriber("/closest_pair_angle_hist", Float32, self.angle_callback)
         self.cmd_vel_pub = rospy.Publisher("/cmd_vel", Twist, queue_size=1)
         self.points_pub = rospy.Publisher("/field_points", PointCloud2, queue_size=1)
         self.marker_pub = rospy.Publisher("/polynomial_markers", Marker, queue_size=10)
